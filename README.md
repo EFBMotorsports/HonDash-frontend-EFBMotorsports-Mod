@@ -18,3 +18,29 @@ Screenshots
 <img width="1024" height="600" alt="image" src="https://github.com/user-attachments/assets/530a440f-3a89-4674-b86c-fa2951020c15" />
 <img width="1024" height="600" alt="image" src="https://github.com/user-attachments/assets/3462d83d-5144-434e-bfce-5ebf401d6d95" />
 
+Installing on top of an existing HonDash install
+
+You don't need to touch the HonDash backend, the Hondata connection, or anything else already running on your Pi — this fork only replaces/adds the frontend page. Pick whichever matches how your Pi is currently set up:
+
+You deployed the frontend via Docker (the standard HonDash install)
+On the Pi, clone this fork (instead of, or alongside, the original repo).
+Rebuild the frontend image from it: make docker/build
+Restart the container: make docker/run — this replaces the running hondash-frontend container on the same port/network, so nothing else in your existing setup needs to change.
+Point the kiosk browser at http://hondash.local/cool.html instead of whatever page it currently loads (edit wherever the Chromium kiosk command/autostart entry lives on your Pi).
+You're just swapping files by hand (no Docker rebuild)
+Copy src/cool.html onto the Pi, into the same folder your existing HonDash frontend already serves from (next to index.html/basic.html).
+Point the kiosk browser at that file's URL, e.g. http://hondash.local/cool.html.
+If you don't already have an "Exit to Linux" helper set up from a previous HonDash install, follow pi-setup/README.md to add one.
+Running it
+
+Same as upstream — see the Makefile and Dockerfile:
+
+bash
+make docker/build
+make docker/run       # serves the dashboard at http://localhost/
+
+On a Raspberry Pi kiosk setup, point Chromium at the served address in kiosk mode (see make run_rpi in the Makefile), and follow pi-setup/README.md to enable the exit/relaunch flow.
+
+License
+
+Same license as upstream (ISC) — see package.json.
