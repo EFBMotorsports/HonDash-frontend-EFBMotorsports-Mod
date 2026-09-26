@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=HonDash
+Comment=Back to the HonDash dashboard
+Exec=sudo /usr/bin/systemctl start chromium.service
+Icon=utilities-terminal
+Terminal=false

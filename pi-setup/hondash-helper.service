@@ -1,0 +1,11 @@
+[Unit]
+Description=HonDash local helper (lets the dash's Exit button stop the kiosk)
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/pi/Desktop/hondash-helper.py
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target
