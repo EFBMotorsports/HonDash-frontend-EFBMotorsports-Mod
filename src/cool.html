@@ -184,6 +184,17 @@
   }
   #cogBtn svg { width: 22px; height: 22px; }
   #cogBtn:focus-visible, #menu button:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+  #nightBtn {
+    position: absolute; left: 676px; top: 302px; width: 40px; height: 40px; z-index: 4;
+    display: grid; place-items: center; padding: 0; cursor: pointer;
+    background: transparent; border: 1.5px solid #2b2f37; border-radius: 50%; color: var(--dim);
+  }
+  #nightBtn svg { width: 20px; height: 20px; position: absolute; transition: opacity .2s; }
+  #nightBtn #iconMoon { opacity: 0; }
+  #stage.night #nightBtn { color: var(--amber); border-color: #4a3d24; }
+  #stage.night #nightBtn #iconSun { opacity: 0; }
+  #stage.night #nightBtn #iconMoon { opacity: 1; }
+  #nightBtn:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
 
   /* tiles */
   #tiles {
@@ -221,6 +232,7 @@
   #stage[data-layout="r2"] #speedBox .n { font-size: 74px; }
   #stage[data-layout="r2"] #pills { top: 258px; }
   #stage[data-layout="r2"] #cogBtn { top: 254px; }
+  #stage[data-layout="r2"] #nightBtn { top: 254px; }
   #stage[data-layout="r2"] #msg { top: 256px; font-size: 22px; }
   #stage[data-layout="r2"] #tiles { top: 298px; height: 166px; gap: 10px; }
   #stage[data-layout="r2"] .tile { padding: 6px 12px 0; }
@@ -253,6 +265,7 @@
   #stage[data-style="analog"] #pills { top: 348px; left: 30px; }
   #stage[data-style="analog"] #msg { top: 346px; left: 388px; right: 96px; font-size: 20px; }
   #stage[data-style="analog"] #cogBtn { left: 728px; top: 344px; }
+  #stage[data-style="analog"] #nightBtn { left: 676px; top: 344px; }
   #efWrap { display: none; position: absolute; inset: 0; }
   #stage[data-style="analog"] #efWrap { display: block; }
   .dial { position: absolute; filter: drop-shadow(0 10px 18px rgba(0,0,0,.55)); }
@@ -410,6 +423,10 @@
         <span class="pill p-log" id="pLog">LOG</span>
       </div>
       <div id="msg"></div>
+      <button type="button" id="nightBtn" aria-label="Toggle day/night mode" aria-pressed="false">
+        <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></svg>
+        <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
       <button type="button" id="cogBtn" aria-label="Open settings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15z"/></svg>
       </button>
@@ -448,6 +465,12 @@
         </div>
 
         <div class="pane" id="pLook">
+          <div class="lab">Dashboard style</div>
+          <div class="seg" id="segUI" style="margin-bottom:6px">
+            <button type="button" data-v="modern" aria-pressed="true">Modern (this UI)</button>
+            <button type="button" data-v="original" aria-pressed="false">Original HonDash</button>
+          </div>
+          <div class="hint" style="margin-bottom:14px"><span>Switches to HonDash's original dashboard. A small button in its corner brings you back here.</span></div>
           <div class="lab">Cluster style</div>
           <div class="seg" id="segStyle" style="margin-bottom:14px">
             <button type="button" data-v="digital" aria-pressed="true">Digital</button>
@@ -1114,7 +1137,8 @@
   }
 
   /* settings menu */
-  var menu = $('#menu'), cog = $('#cogBtn');
+  var menu = $('#menu'), cog = $('#cogBtn'), nightBtn = $('#nightBtn');
+  nightBtn.addEventListener('click', function () { cfg.night = !cfg.night; save(); applyLook(); renderLook(); });
   function openMenu() { menu.classList.add('open'); $('#mDone').focus(); }
   function closeMenu() { menu.classList.remove('open'); cog.focus(); }
   function isOpen() { return menu.classList.contains('open'); }
@@ -1277,6 +1301,7 @@
   function segWire(root, fn) {
     $$('#' + root + ' button').forEach(function (b) { b.addEventListener('click', function () { fn(b.dataset.v); save(); renderLook(); }); });
   }
+  segWire('segUI', function (v) { if (v === 'original') { window.location.href = 'basic.html'; } });
   segWire('segFx', function (v) { cfg.effects = v; applyLook(); if (v === 'full') drawSparks(); });
   segWire('segBr', function (v) { cfg.night = v === 'night'; applyLook(); });
   function renderLook() {
@@ -1287,6 +1312,7 @@
     $$('#swVtec .swb').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.c.toLowerCase() === cfg.vtec.toLowerCase() ? 'true' : 'false'); });
     $$('#segFx button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === cfg.effects ? 'true' : 'false'); });
     $$('#segBr button').forEach(function (b) { b.setAttribute('aria-pressed', (b.dataset.v === 'night') === cfg.night ? 'true' : 'false'); });
+    nightBtn.setAttribute('aria-pressed', cfg.night ? 'true' : 'false');
   }
 
   /* tach tab */
