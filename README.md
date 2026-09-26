@@ -5,7 +5,7 @@ This is a fork of HonDash-frontend, the browser-based dashboard for HonDash, a R
 This fork adds a new dashboard concept (src/cool.html) plus a few fixes and extra features on top of it.
 
 What's different in this fork
-src/cool.html — a redesigned dashboard: digital tiles or an analog EF-cluster look, a settings menu (sensor layout, theme, tach/VTEC point, brightness), and live gauges fed by the real HonDash websocket.
+src/cool.html — a redesigned dashboard: digital tiles or an analog cluster look, a settings menu (sensor layout, theme, tach/VTEC point, brightness), and live gauges fed by the real HonDash websocket.
 Instant RPM and throttle — the tach and throttle bar track the live feed immediately instead of being smoothed like the other, noisier sensors.
 No more stuck alarms — the red alarm border used to freeze on whatever a sensor last read the instant the ECU connection dropped (e.g. shutting the car off). Values now reset to safe defaults on disconnect, and the air/fuel reading no longer counts toward the alarm unless the engine is actually running above idle.
 Tap-to-adjust thresholds — tap the Coolant, Intake air, Air/fuel, Battery, or Fuel level tile (or gauge, in analog mode) on the main screen to open +/- steppers for that sensor's amber/red warning points. Saved per-browser, with a reset-to-default option per sensor.
