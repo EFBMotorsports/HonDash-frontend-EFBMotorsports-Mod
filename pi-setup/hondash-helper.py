@@ -69,6 +69,12 @@ def run_update():
     try:
         with os.fdopen(fd, "wb") as f:
             f.write(data)
+        # mkstemp creates the file mode 600 (owner read/write only). docker cp
+        # preserves that mode into the container, and nginx there runs as its
+        # own unprivileged user - so left at 600 the copied file is unreadable
+        # by nginx and every request for it 403s. World-readable like a normal
+        # served file fixes it.
+        os.chmod(tmp_path, 0o644)
         result = subprocess.run(
             ["docker", "cp", tmp_path, "{}:{}".format(CONTAINER_NAME, CONTAINER_DEST)],
             capture_output=True,
@@ -79,6 +85,16 @@ def run_update():
             raise RuntimeError(
                 "docker cp failed: " + (result.stderr or "unknown error").strip()
             )
+        # belt-and-suspenders: also fix permissions *inside* the container,
+        # in case some future docker version stops preserving/normalizing
+        # mode bits the way it does today. A 403 here is a silent, ugly
+        # failure mode, so this is worth the extra step.
+        subprocess.run(
+            ["docker", "exec", CONTAINER_NAME, "chmod", "644", CONTAINER_DEST],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
     finally:
         try:
             os.remove(tmp_path)
