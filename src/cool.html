@@ -1,0 +1,1355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HonDash dash concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ground: #101216;
+    --panel: #181b21;
+    --unlit: #252932;
+    --ink: #eeebe3;
+    --dim: #8b9099;
+    --red: #f0202f;
+    --amber: #ffb224;
+    --cyan: #59c6ff;
+    --green: #4fd98a;
+    --neutral: #3a3f49;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0; height: 100%;
+    background: var(--ground); color: #eeebe3;
+    font-family: 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; overflow: hidden;
+  }
+  button { font-family: inherit; }
+  #holder { position: relative; }
+  #stage {
+    position: absolute; left: 0; top: 0; width: 800px; height: 480px;
+    transform-origin: 0 0;
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.035) 0 2px, transparent 2px 6px),
+      repeating-linear-gradient(-45deg, rgba(0,0,0,.3) 0 2px, transparent 2px 6px),
+      radial-gradient(110% 80% at 50% 22%, #1a1d24 0%, #111318 58%, #0b0c0f 100%);
+    border-radius: 18px; overflow: hidden;
+    outline: 2px solid #23262d;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    --ink: #eeebe3; --vt: #f0202f; --vtg: rgba(240,32,47,.5); --vtInk: #fff; --dg: rgba(0,0,0,0);
+  }
+  #stage.vt { --dg: var(--vtg); }
+  #stage[data-theme="retro"] {
+    background:
+      repeating-linear-gradient(90deg, rgba(255,200,120,.05) 0 1px, transparent 1px 3px),
+      radial-gradient(120% 90% at 50% 15%, #241b12 0%, #17110a 60%, #0d0906 100%);
+  }
+  #stage[data-theme="ice"] {
+    background:
+      repeating-linear-gradient(60deg, rgba(130,205,255,.06) 0 2px, transparent 2px 8px),
+      radial-gradient(120% 90% at 50% 15%, #101a24 0%, #0b131c 60%, #060a10 100%);
+  }
+  #stage[data-theme="sunset"] {
+    background:
+      repeating-radial-gradient(circle at 0 0, rgba(255,190,150,.05) 0 1px, transparent 1px 4px),
+      radial-gradient(120% 90% at 50% 10%, #2a1420 0%, #1c0f16 55%, #0f0810 100%);
+  }
+  #stage[data-theme="stealth"] {
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.02) 0 2px, transparent 2px 6px),
+      repeating-linear-gradient(-45deg, rgba(255,255,255,.015) 0 2px, transparent 2px 6px),
+      radial-gradient(110% 80% at 50% 22%, #16181c 0%, #0e0f12 58%, #08090b 100%);
+  }
+  #stage::before, #stage::after {
+    content: ''; position: absolute; inset: 0; border-radius: 18px;
+    pointer-events: none; opacity: 0; z-index: 5;
+  }
+  #stage.shifting::after {
+    opacity: 1;
+    box-shadow: inset 0 0 0 4px var(--red), inset 0 0 70px rgba(240,32,47,.4);
+    animation: blink .12s steps(2) infinite;
+  }
+  #stage.alarm::before {
+    opacity: 1;
+    box-shadow: inset 0 0 0 6px var(--red), inset 0 0 90px rgba(240,32,47,.35);
+    animation: pulse 1.1s ease-in-out infinite;
+  }
+  @keyframes blink { 50% { opacity: .2; } }
+  @keyframes pulse { 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) {
+    #stage.shifting::after, #stage.alarm::before { animation: none; }
+  }
+  #dim { position: absolute; inset: 0; background: rgba(0,0,0,.42); opacity: 0; pointer-events: none; z-index: 7; transition: opacity .3s; }
+  #stage.night #dim { opacity: 1; }
+
+  /* tach */
+  #bloom {
+    position: absolute; left: 12px; top: 8px; width: 776px; height: 110px; pointer-events: none;
+    background: radial-gradient(38% 60% at var(--bx, 0%) 50%, var(--bc, rgba(238,235,227,.2)) 0%, transparent 100%);
+    opacity: 0;
+  }
+  #tach { position: absolute; left: 32px; top: 34px; width: 736px; height: 46px; display: flex; gap: 3px; }
+  #tach i {
+    flex: 1; border-radius: 2px; transform: skewX(-16deg);
+    background: linear-gradient(180deg, #2b2f38, #21252c);
+  }
+  #tach i.z-red { background: linear-gradient(180deg, #45191f, #2e1216); }
+  #tach i.on { background: var(--c); box-shadow: 0 0 9px var(--g); }
+  #stage.shifting #tach i.on { background: #ff3b3b; }
+  #peak {
+    position: absolute; top: 30px; width: 3px; height: 54px; background: #fff; border-radius: 1px;
+    transform: skewX(-16deg); box-shadow: 0 0 8px rgba(255,255,255,.8); opacity: 0;
+  }
+  #ticks { position: absolute; left: 32px; top: 84px; width: 736px; height: 20px; }
+  #ticks span { position: absolute; transform: translateX(-50%); font-size: 18px; font-weight: 500; color: var(--dim); }
+  #vtecMark { position: absolute; left: 0; top: 24px; width: 2px; height: 60px; background: var(--vt); transform: translateX(-1px) skewX(-16deg); opacity: .9; }
+  #vtecTag { position: absolute; left: 0; top: 83px; transform: translateX(-50%); font-size: 17px; font-weight: 700; color: var(--vt); letter-spacing: .02em; }
+  #tpsBar { position: absolute; left: 32px; top: 8px; width: 736px; height: 10px; border-radius: 5px; background: var(--unlit); overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,.5); }
+  #tpsFill { display: block; width: 100%; height: 100%; background: linear-gradient(90deg, #6f6c65, var(--ink)); border-radius: 5px; transform-origin: 0 50%; transform: scaleX(0); }
+
+  /* big readouts */
+  .big { position: absolute; top: 108px; height: 190px; }
+  .big .n { font-weight: 700; line-height: .9; }
+  .big .u { font-size: 22px; font-weight: 500; color: var(--dim); }
+  #gearBox { left: 32px; width: 150px; }
+  #gearBox .n { font-size: 176px; }
+  #rpmBox { left: 200px; width: 400px; text-align: center; }
+  #rpmBox .n { font-size: 170px; text-shadow: 0 0 26px var(--dg); }
+  #speedBox { left: 620px; width: 148px; text-align: right; padding-top: 34px; }
+  #speedBox .n { font-size: 96px; }
+
+  #pills { position: absolute; left: 32px; top: 306px; display: flex; gap: 8px; }
+  .pill {
+    padding: 3px 13px; border-radius: 999px; font-size: 19px; font-weight: 600;
+    color: #545a65; border: 1.5px solid #2b2f37;
+  }
+  .pill.on { color: #101216; background: var(--c); border-color: var(--c); box-shadow: 0 0 14px var(--c); }
+  .pill.on.p-vtec { color: var(--vtInk); }
+  .p-cel, .p-scs { --c: var(--amber); }
+  .p-fan { --c: var(--cyan); }
+  .p-vtec { --c: var(--vt); }
+  .p-log { --c: var(--green); }
+  #msg { position: absolute; left: 380px; right: 84px; top: 304px; text-align: right; font-size: 24px; font-weight: 600; color: #ff5a63; white-space: nowrap; }
+  #cogBtn {
+    position: absolute; left: 728px; top: 302px; width: 40px; height: 40px; z-index: 4;
+    display: grid; place-items: center; padding: 0; cursor: pointer;
+    background: transparent; border: 1.5px solid #2b2f37; border-radius: 50%; color: var(--dim);
+  }
+  #cogBtn svg { width: 22px; height: 22px; }
+  #cogBtn:focus-visible, #menu button:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+
+  /* tiles */
+  #tiles {
+    position: absolute; left: 32px; right: 32px; top: 350px; height: 112px;
+    display: grid; gap: 12px;
+    grid-template-columns: repeat(var(--cols, 4), 1fr);
+    grid-template-rows: repeat(var(--rows, 1), 1fr);
+  }
+  .tile {
+    position: relative; border-radius: 10px; padding: 9px 14px 0; overflow: hidden;
+    background: linear-gradient(180deg, #1d2027, #14171c);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 0 0 1px rgba(255,255,255,.025);
+  }
+  .tile .l, .tile .v { position: relative; z-index: 1; }
+  .tile .l { font-size: 21px; font-weight: 500; color: var(--dim); white-space: nowrap; }
+  .tile .v { font-size: 62px; font-weight: 700; line-height: 1; color: var(--vc, var(--ink)); margin-top: 2px; white-space: nowrap; }
+  .tile .v small { font-size: 22px; font-weight: 500; color: var(--dim); margin-left: 4px; }
+  .tile::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 7px; background: var(--state, var(--green)); box-shadow: 0 0 14px var(--state, var(--green)); z-index: 1; }
+  .spark { position: absolute; left: 0; right: 0; bottom: 7px; width: 100%; height: 62%; z-index: 0; }
+  .spark .a { fill: var(--spk, var(--state, var(--green))); opacity: .14; }
+  .spark .l { fill: none; stroke: var(--spk, var(--state, var(--green))); stroke-width: 1.5; vector-effect: non-scaling-stroke; opacity: .6; }
+  [data-state="none"]  { --state: var(--neutral); --spk: #7d838d; }
+  [data-state="cyan"]  { --state: var(--cyan);  --vc: var(--cyan); }
+  [data-state="green"] { --state: var(--green); }
+  [data-state="amber"] { --state: var(--amber); --vc: var(--amber); }
+  [data-state="red"]   { --state: var(--red);   --vc: #ff5a63; }
+  .tile[data-state="red"] { background: linear-gradient(180deg, #2b1217, #190e11); }
+  .tile[data-state="amber"] { background: linear-gradient(180deg, #262016, #17150f); }
+
+  #stage[data-layout="r2"] .big { top: 102px; height: 150px; }
+  #stage[data-layout="r2"] .big .u { font-size: 19px; }
+  #stage[data-layout="r2"] #gearBox .n { font-size: 128px; }
+  #stage[data-layout="r2"] #rpmBox .n { font-size: 128px; }
+  #stage[data-layout="r2"] #speedBox { padding-top: 22px; }
+  #stage[data-layout="r2"] #speedBox .n { font-size: 74px; }
+  #stage[data-layout="r2"] #pills { top: 258px; }
+  #stage[data-layout="r2"] #cogBtn { top: 254px; }
+  #stage[data-layout="r2"] #msg { top: 256px; font-size: 22px; }
+  #stage[data-layout="r2"] #tiles { top: 298px; height: 166px; gap: 10px; }
+  #stage[data-layout="r2"] .tile { padding: 6px 12px 0; }
+  #stage[data-layout="r2"] .tile .l { font-size: 18px; }
+  #stage[data-layout="r2"] .tile .v { font-size: 44px; margin-top: 0; }
+  #stage[data-layout="r2"] .tile .v small { font-size: 18px; }
+  #stage[data-layout="r2"] .tile::after { height: 6px; }
+  #stage[data-layout="r2"] .spark { bottom: 6px; height: 68%; }
+
+  /* lite effects: for slower Pis */
+  #stage.lite #bloom, #stage.lite .spark { display: none; }
+  #stage.lite #tach i.on, #stage.lite .pill.on, #stage.lite .tile::after, #stage.lite #peak { box-shadow: none; }
+  #stage.lite #rpmBox .n { text-shadow: none; }
+
+  /* EF-cluster analog theme: hide the digital dash, show round gauges */
+  #stage[data-style="analog"] #bloom,
+  #stage[data-style="analog"] #tach,
+  #stage[data-style="analog"] #peak,
+  #stage[data-style="analog"] #ticks,
+  #stage[data-style="analog"] #vtecMark,
+  #stage[data-style="analog"] #vtecTag,
+  #stage[data-style="analog"] #tpsBar,
+  #stage[data-style="analog"] .big,
+  #stage[data-style="analog"] #tiles { display: none; }
+  #stage[data-style="analog"] {
+    background:
+      repeating-conic-gradient(rgba(255,255,255,.025) 0deg 2deg, transparent 2deg 4deg),
+      radial-gradient(120% 90% at 50% 15%, #16181d 0%, #0a0b0e 70%);
+  }
+  #stage[data-style="analog"] #pills { top: 348px; left: 30px; }
+  #stage[data-style="analog"] #msg { top: 346px; left: 388px; right: 96px; font-size: 20px; }
+  #stage[data-style="analog"] #cogBtn { left: 728px; top: 344px; }
+  #efWrap { display: none; position: absolute; inset: 0; }
+  #stage[data-style="analog"] #efWrap { display: block; }
+  .dial { position: absolute; filter: drop-shadow(0 10px 18px rgba(0,0,0,.55)); }
+  .dial svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  #efTach { left: 30px; top: 40px; width: 300px; height: 300px; }
+  #efSpeedo { left: 470px; top: 40px; width: 300px; height: 300px; }
+  #efGearWin {
+    position: absolute; left: 368px; top: 246px; width: 64px; height: 46px; border-radius: 4px;
+    background: #0b0c0f; border: 2px solid #2a2d33; display: grid; place-items: center;
+    font-size: 26px; font-weight: 700; color: #ff5a3c; text-shadow: 0 0 8px rgba(255,90,60,.7);
+  }
+  #efGauges {
+    position: absolute; left: 30px; right: 30px; top: 384px; height: 90px;
+    display: grid; grid-template-columns: repeat(var(--ecols, 5), 1fr); gap: 4px;
+  }
+  .agp { position: relative; text-align: center; overflow: hidden; }
+  .agp .gsvg { width: 58px; height: 58px; margin: 0 auto; }
+  .agp .gsvg svg { width: 100%; height: 100%; display: block; }
+  .agp .l { font-size: 13px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .agp .v { font-size: 18px; font-weight: 700; color: #eeebe3; white-space: nowrap; }
+  .agp .v small { font-size: 12px; font-weight: 500; color: var(--dim); margin-left: 2px; }
+
+  /* settings menu */
+  #menu, #threshEdit { position: absolute; inset: 0; z-index: 8; display: none; background: rgba(9,10,13,.97); padding: 16px 28px 20px; border-radius: 18px; }
+  #menu.open, #threshEdit.open { display: block; }
+  #teHead { display: flex; align-items: center; justify-content: space-between; height: 48px; }
+  #teTitle { font-size: 34px; font-weight: 700; }
+  #teRows { margin-top: 22px; }
+  .tile[data-adjustable="1"], .agp[data-adjustable="1"] { cursor: pointer; }
+  #mHead { display: flex; align-items: center; justify-content: space-between; height: 48px; }
+  #mTitle { font-size: 34px; font-weight: 700; }
+  #mActs { display: flex; gap: 10px; }
+  .mb {
+    font-size: 22px; font-weight: 600; min-height: 44px; padding: 6px 20px; border-radius: 999px; cursor: pointer;
+    color: var(--ink); background: #181b21; border: 1.5px solid #2f343d;
+  }
+  .mb.pri { background: var(--ink); color: #101216; border-color: var(--ink); }
+  .mb.sm { min-height: 36px; font-size: 19px; padding: 3px 16px; }
+  .mb:disabled { opacity: .4; cursor: default; }
+  #mTabs { display: flex; gap: 8px; margin-top: 10px; }
+  .tab { font-size: 24px; font-weight: 600; min-height: 46px; padding: 6px 26px; border-radius: 999px; cursor: pointer; color: var(--dim); background: transparent; border: 1.5px solid #2b2f37; }
+  .tab[aria-selected="true"] { color: #101216; background: var(--ink); border-color: var(--ink); }
+  .pane { display: none; position: absolute; left: 28px; right: 28px; top: 132px; bottom: 16px; overflow: auto; }
+  .pane.on { display: block; }
+  .hint { display: flex; align-items: center; gap: 14px; font-size: 21px; color: var(--dim); margin-bottom: 12px; }
+  .hint b { color: var(--ink); font-weight: 600; }
+  .hint .mb { margin-left: auto; }
+  #sGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .chip {
+    position: relative; height: 66px; border-radius: 12px; cursor: pointer; text-align: left; padding: 0 14px;
+    background: #15181d; border: 1.5px solid #2b2f37; color: var(--dim); font-size: 25px; font-weight: 600;
+  }
+  .chip .un { font-size: 18px; font-weight: 500; margin-left: 5px; opacity: .8; }
+  .chip .bd {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 50%;
+    background: var(--ink); color: #101216; font-size: 21px; font-weight: 700; display: none; place-items: center;
+  }
+  .chip[aria-pressed="true"] { color: var(--ink); border-color: var(--ink); background: #1c2027; }
+  .chip[aria-pressed="true"] .bd { display: grid; }
+  .chip[aria-disabled="true"] { opacity: .4; }
+  .lab { font-size: 20px; color: var(--dim); margin: 0 0 6px; }
+  .crow {
+    display: flex; align-items: center; gap: 12px; padding: 10px 14px; margin-bottom: 8px;
+    background: #15181d; border: 1.5px solid #2b2f37; border-radius: 10px;
+  }
+  .crow .cdot { width: 16px; height: 16px; border-radius: 50%; flex: none; }
+  .crow .cname { font-size: 21px; font-weight: 600; flex: 1; }
+  .crow .cby { font-size: 15px; color: var(--dim); }
+  .crow .mb { padding: 4px 16px; font-size: 17px; min-height: 34px; }
+  .crow.installed .mb { color: var(--dim); background: transparent; cursor: default; }
+  .cnote { font-size: 16px; color: var(--dim); padding: 6px 2px; }
+  #thRow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .card { height: 82px; border-radius: 12px; padding: 12px 12px 0; cursor: pointer; text-align: left; background: #15181d; border: 1.5px solid #2b2f37; color: var(--ink); font-size: 22px; font-weight: 600; }
+  .card i { display: block; height: 14px; border-radius: 3px; margin-bottom: 9px; }
+  .card[aria-pressed="true"] { border-color: var(--ink); background: #1c2027; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 14px; }
+  .sw { display: flex; gap: 10px; }
+  .swb { width: 46px; height: 46px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; box-shadow: inset 0 0 0 2px rgba(0,0,0,.35); }
+  .swb[aria-pressed="true"] { border-color: var(--ink); }
+  .seg { display: inline-flex; border: 1.5px solid #2b2f37; border-radius: 999px; overflow: hidden; }
+  .seg button { min-height: 44px; padding: 6px 28px; font-size: 22px; font-weight: 600; background: transparent; color: var(--dim); border: 0; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: #101216; }
+  .row { display: flex; align-items: center; justify-content: space-between; height: 86px; border-bottom: 1px solid #23262d; }
+  .row .t { font-size: 28px; font-weight: 600; }
+  .row .s { font-size: 19px; color: var(--dim); font-weight: 500; }
+  .step { display: flex; align-items: center; gap: 14px; }
+  .step button { width: 56px; height: 56px; border-radius: 50%; font-size: 34px; font-weight: 600; line-height: 1; cursor: pointer; color: var(--ink); background: #181b21; border: 1.5px solid #2f343d; }
+  .step output { min-width: 140px; text-align: center; font-size: 44px; font-weight: 700; }
+  .step output small { font-size: 20px; font-weight: 500; color: var(--dim); margin-left: 4px; }
+  .switch { width: 84px; height: 46px; border-radius: 999px; cursor: pointer; position: relative; background: #252932; border: 0; }
+  .switch::after { content: ''; position: absolute; top: 5px; left: 5px; width: 36px; height: 36px; border-radius: 50%; background: #8b9099; transition: transform .15s; }
+  .switch[aria-checked="true"] { background: var(--ink); }
+  .switch[aria-checked="true"]::after { transform: translateX(38px); background: #101216; }
+  @media (prefers-reduced-motion: reduce) { .switch::after { transition: none; } #dim { transition: none; } }
+
+  /* Linux desktop stand-in, shown by "Exit to Linux" */
+  #linuxDesktop {
+    position: absolute; inset: 0; z-index: 9; display: none;
+    background: linear-gradient(160deg, #1c2c3d 0%, #101923 55%, #0a0f16 100%);
+    color: #cfd6de;
+  }
+  #linuxDesktop.open { display: block; }
+  #linuxDesktop .wall { position: absolute; inset: 0 0 52px 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; text-align: center; padding: 0 60px; }
+  #linuxDesktop .wtitle { font-size: 30px; font-weight: 700; }
+  #linuxDesktop .hint { font-size: 18px; color: #7d8894; max-width: 520px; }
+  #linuxDesktop .taskbar {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 52px;
+    background: #12181f; border-top: 1px solid #232b34; display: flex; align-items: center; padding: 0 14px; gap: 12px;
+  }
+  #linuxDesktop .relaunch {
+    display: flex; align-items: center; gap: 8px; background: #1c242d; border: 1px solid #2a333d; border-radius: 8px;
+    padding: 6px 16px; cursor: pointer; font-size: 18px; font-weight: 600; color: #eeebe3;
+  }
+  #linuxDesktop .relaunch:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+  #linuxDesktop .clock { margin-left: auto; font-size: 18px; color: #9aa3ad; }
+
+  /* page controls */
+  #controls { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 12px; }
+  .grp { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .grp .cap { font-size: 17px; color: var(--dim); margin-right: 2px; }
+  .grp button {
+    font: 600 18px 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+    color: #eeebe3; background: var(--panel); border: 1.5px solid #2b2f37;
+    padding: 5px 15px; border-radius: 999px; cursor: pointer;
+  }
+  .grp button[aria-pressed="true"] { background: #eeebe3; color: var(--ground); border-color: #eeebe3; }
+  .grp button:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+  #note { text-align: center; font-size: 16px; color: var(--dim); }
+</style>
+</head>
+<body>
+  <div id="holder">
+    <div id="stage" data-layout="r2" data-style="digital">
+      <div id="bloom"></div>
+      <div id="tach"></div>
+      <div id="peak"></div>
+      <div id="ticks"></div>
+      <div id="vtecMark"></div>
+      <div id="vtecTag">VTEC</div>
+      <div id="tpsBar" role="img" aria-label="Throttle position"><i id="tpsFill"></i></div>
+
+      <div class="big" id="gearBox"><div class="n" id="gear">N</div><div class="u">gear</div></div>
+      <div class="big" id="rpmBox"><div class="n" id="rpm">1,000</div><div class="u">rpm</div></div>
+      <div class="big" id="speedBox"><div class="n" id="mph">0</div><div class="u">mph</div></div>
+
+      <div id="pills">
+        <span class="pill p-cel" id="pCel">Check engine</span>
+        <span class="pill p-fan" id="pFan">Fan</span>
+        <span class="pill p-scs" id="pScs">SCS</span>
+        <span class="pill p-vtec" id="pVtec">VTEC</span>
+        <span class="pill p-log" id="pLog">LOG</span>
+      </div>
+      <div id="msg"></div>
+      <button type="button" id="cogBtn" aria-label="Open settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15z"/></svg>
+      </button>
+
+      <div id="tiles"></div>
+
+      <div id="efWrap">
+        <div class="dial" id="efTach"></div>
+        <div class="dial" id="efSpeedo"></div>
+        <div id="efGearWin">N</div>
+        <div id="efGauges"></div>
+      </div>
+
+      <div id="dim"></div>
+
+      <div id="menu" role="dialog" aria-modal="true" aria-label="Settings">
+        <div id="mHead">
+          <div id="mTitle">Settings</div>
+          <div id="mActs">
+            <button type="button" class="mb" id="mExit">Exit to Linux</button>
+            <button type="button" class="mb" id="mReset">Reset all</button>
+            <button type="button" class="mb pri" id="mDone">Done</button>
+          </div>
+        </div>
+        <div id="mTabs" role="tablist">
+          <button type="button" class="tab" role="tab" data-p="pSensors" aria-selected="true">Sensors</button>
+          <button type="button" class="tab" role="tab" data-p="pLook" aria-selected="false">Look</button>
+          <button type="button" class="tab" role="tab" data-p="pTach" aria-selected="false">Tach</button>
+          <button type="button" class="tab" role="tab" data-p="pCommunity" aria-selected="false">Community</button>
+          <button type="button" class="tab" role="tab" data-p="pUpdates" aria-selected="false">Updates</button>
+        </div>
+
+        <div class="pane on" id="pSensors">
+          <div class="hint"><span><b id="sCount">10 of 10</b> shown. Tap sensors in the order you want them.</span><button type="button" class="mb sm" id="sClear">Clear</button></div>
+          <div id="sGrid"></div>
+        </div>
+
+        <div class="pane" id="pLook">
+          <div class="lab">Cluster style</div>
+          <div class="seg" id="segStyle" style="margin-bottom:14px">
+            <button type="button" data-v="digital" aria-pressed="true">Digital</button>
+            <button type="button" data-v="analog" aria-pressed="false">Analog (EF)</button>
+          </div>
+          <div class="lab">Theme</div>
+          <div id="thRow"></div>
+          <div class="two">
+            <div><div class="lab">Tach color</div><div class="sw" id="swTach"></div></div>
+            <div><div class="lab">VTEC color</div><div class="sw" id="swVtec"></div></div>
+          </div>
+          <div class="two">
+            <div><div class="lab">Effects</div><div class="seg" id="segFx"><button type="button" data-v="full" aria-pressed="true">Full</button><button type="button" data-v="lite" aria-pressed="false">Lite</button></div></div>
+            <div><div class="lab">Brightness</div><div class="seg" id="segBr"><button type="button" data-v="day" aria-pressed="true">Day</button><button type="button" data-v="night" aria-pressed="false">Night</button></div></div>
+          </div>
+        </div>
+
+        <div class="pane" id="pTach">
+          <div class="row"><div><div class="t">Shift light</div><div class="s">The screen flashes at this RPM.</div></div>
+            <div class="step"><button type="button" id="shDn" aria-label="Lower shift light">&minus;</button><output id="shVal"></output><button type="button" id="shUp" aria-label="Raise shift light">+</button></div></div>
+          <div class="row"><div><div class="t">VTEC point</div><div class="s">Set it to match your tune.</div></div>
+            <div class="step"><button type="button" id="vtDn" aria-label="Lower VTEC point">&minus;</button><output id="vtVal"></output><button type="button" id="vtUp" aria-label="Raise VTEC point">+</button></div></div>
+          <div class="row"><div><div class="t">Show VTEC line</div><div class="s">Marks the engage point on the tach.</div></div>
+            <button type="button" class="switch" id="swVt" role="switch" aria-checked="true" aria-label="Show VTEC line"></button></div>
+          <div class="row"><div><div class="t">Smooth battery reading</div><div class="s">Filters out electrical noise so the number stops bouncing.</div></div>
+            <button type="button" class="switch" id="swBattSmooth" role="switch" aria-checked="true" aria-label="Smooth battery reading"></button></div>
+        </div>
+
+        <div class="pane" id="pCommunity">
+          <div class="hint"><span>Themes shared by other HonDash owners on GitHub.</span><button type="button" class="mb sm" id="cRefresh">Refresh</button></div>
+          <input type="text" id="cRepo" value="pablobuenaposada/HonDash-themes" spellcheck="false"
+            style="width:100%;box-sizing:border-box;margin-bottom:10px;padding:9px 12px;font-size:18px;font-family:inherit;background:#15181d;border:1.5px solid #2b2f37;border-radius:8px;color:var(--ink);">
+          <div id="cList"></div>
+        </div>
+
+        <div class="pane" id="pUpdates">
+          <div class="row"><div><div class="t">Installed version</div><div class="s" id="uInstalled">&mdash;</div></div>
+            <button type="button" class="mb sm" id="uCheck">Check for updates</button></div>
+          <div id="uStatus" class="cnote">Tap &ldquo;Check for updates&rdquo; to see if there&rsquo;s a newer build on GitHub.</div>
+          <div id="uProgWrap" style="display:none;margin:12px 0">
+            <div style="height:8px;border-radius:5px;background:#20242c;overflow:hidden">
+              <div id="uProg" style="height:100%;width:0%;background:var(--tach);transition:width .35s"></div>
+            </div>
+            <div id="uProgLabel" class="cnote" style="padding-left:0"></div>
+          </div>
+          <button type="button" class="mb pri" id="uApply" style="width:100%;margin-top:8px" disabled>Update now</button>
+          <div class="lab" style="margin-top:18px">Update source</div>
+          <input type="text" id="uRepo" spellcheck="false"
+            style="width:100%;box-sizing:border-box;margin-bottom:6px;padding:9px 12px;font-size:18px;font-family:inherit;background:#15181d;border:1.5px solid #2b2f37;border-radius:8px;color:var(--ink);">
+          <div class="cnote" style="padding-left:0">Only apply an update while parked with the engine off &mdash; the dash restarts partway through.</div>
+        </div>
+      </div>
+
+      <div id="threshEdit" role="dialog" aria-modal="true" aria-label="Adjust thresholds">
+        <div id="teHead">
+          <div id="teTitle"></div>
+          <div id="mActs">
+            <button type="button" class="mb" id="teReset">Reset</button>
+            <button type="button" class="mb pri" id="teDone">Done</button>
+          </div>
+        </div>
+        <div id="teRows"></div>
+      </div>
+
+      <div id="linuxDesktop">
+        <div class="wall">
+          <div class="wtitle" id="exitStatusTitle">Closing HonDash&hellip;</div>
+          <div class="hint" id="exitStatusHint">Handing off to the Raspberry Pi desktop. To come back, use the &ldquo;HonDash&rdquo; icon there.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  var N = 72, MAX = 9000, STEP = MAX / N;
+  var SHIFT = 7800, RED = 8000, VTEC = 5600;
+  var NS = 'http://www.w3.org/2000/svg';
+  var $ = function (s) { return document.querySelector(s); };
+  var $$ = function (s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
+
+  /* colour helpers */
+  function h2r(c) { return [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)]; }
+  function r2h(a) { return '#' + a.map(function (v) { v = Math.max(0, Math.min(255, Math.round(v))); return (v < 16 ? '0' : '') + v.toString(16); }).join(''); }
+  function mix(a, b, t) { var x = h2r(a), y = h2r(b); return r2h([x[0] + (y[0] - x[0]) * t, x[1] + (y[1] - x[1]) * t, x[2] + (y[2] - x[2]) * t]); }
+  function rgba(c, a) { var x = h2r(c); return 'rgba(' + x[0] + ',' + x[1] + ',' + x[2] + ',' + a + ')'; }
+  function lum(c) { var x = h2r(c); return (0.2126 * x[0] + 0.7152 * x[1] + 0.0722 * x[2]) / 255; }
+
+  /* svg helpers for the analog cluster: 0..1 maps to a 270deg sweep starting at
+     the 7:30 position (bearing 225deg, measured clockwise from 12 o'clock) */
+  function svgEl(tag, attrs) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  function bearingFor(frac) { return 225 + Math.max(0, Math.min(1, frac)) * 270; }
+  function polar(bearingDeg, r) {
+    var rad = bearingDeg * Math.PI / 180;
+    return [100 + r * Math.sin(rad), 100 - r * Math.cos(rad)];
+  }
+
+  /* sensors — these map to the real values the HonDash backend sends over the
+     websocket (see websocket_data_dict in the HonDash repo's src/constants.py).
+     Ranges/states below assume the S300 unit config is left at its Fahrenheit
+     defaults; if you run celsius or bar in default_setup.json, adjust the
+     range (r) and state (st) numbers here to match. */
+  /* Amber/red breakpoints are user-adjustable (tap a tile on the main screen) and
+     live in cfg.thresholds - see THRESH_DEFS below for the editable ranges. The
+     numbers here are just the fallback defaults, used the first time HonDash runs. */
+  var SENSORS = [
+    { k: 'ect',  l: 'Coolant',    u: '°F', r: [100, 240], st: function (v) { var t = cfg.thresholds.ect; return v < 140 ? 'cyan' : v < t.amber ? 'green' : v < t.red ? 'amber' : 'red'; } },
+    { k: 'iat',  l: 'Intake air', u: '°F', r: [60, 180],  st: function (v) { var t = cfg.thresholds.iat; return v < t.amber ? 'green' : v < t.red ? 'amber' : 'red'; } },
+    { k: 'afr',  l: 'Air/fuel',   u: '',       r: [10, 17],   d: 1, st: function (v) { var t = cfg.thresholds.afr; return v > t.lean ? 'red' : v < t.rich ? 'amber' : 'green'; } },
+    { k: 'batt', l: 'Battery',    u: 'V',      r: [10, 15],   d: 1, st: function (v) { var t = cfg.thresholds.batt; return v < t.low ? 'red' : v < t.amberLow ? 'amber' : v <= t.high ? 'green' : 'amber'; } },
+    { k: 'map',  l: 'Manifold',   u: 'kPa',    r: [0, 110],   st: function () { return 'none'; } },
+    { k: 'fuel', l: 'Fuel level', u: '%',      r: [0, 100],   st: function (v) { var t = cfg.thresholds.fuel; return v < t.red ? 'red' : v < t.amber ? 'amber' : 'green'; } },
+    { k: 'eth',  l: 'Ethanol',    u: '%',      r: [0, 100],   st: function () { return 'none'; } },
+    { k: 'cam',  l: 'Cam angle',  u: '°',  r: [-10, 30],  st: function () { return 'none'; } },
+    { k: 'aux1', l: 'Aux 1',      u: '%',      r: [0, 100],   st: function () { return 'none'; } },
+    { k: 'aux2', l: 'Aux 2',      u: '%',      r: [0, 100],   st: function () { return 'none'; } },
+    { k: 'aux3', l: 'Aux 3',      u: '%',      r: [0, 100],   st: function () { return 'none'; } },
+    { k: 'aux4', l: 'Aux 4',      u: '%',      r: [0, 100],   st: function () { return 'none'; } }
+  ];
+  var SBY = {}; SENSORS.forEach(function (s) { SBY[s.k] = s; });
+
+  /* Which sensors get a threshold editor when tapped, the fields each one has,
+     and the safe min/max/step for each field's +/- stepper. */
+  var THRESH_DEFS = {
+    ect:  [ { f: 'amber',    l: 'Amber above', min: 150, max: 240, step: 5 },
+            { f: 'red',      l: 'Red above',   min: 155, max: 250, step: 5 } ],
+    iat:  [ { f: 'amber',    l: 'Amber above', min: 80,  max: 200, step: 5 },
+            { f: 'red',      l: 'Red above',   min: 85,  max: 220, step: 5 } ],
+    afr:  [ { f: 'rich',     l: 'Rich below',  min: 9,   max: 13,  step: 0.1, d: 1 },
+            { f: 'lean',     l: 'Lean above',  min: 13,  max: 18,  step: 0.1, d: 1 } ],
+    batt: [ { f: 'low',      l: 'Red below',   min: 9,   max: 13,  step: 0.1, d: 1 },
+            { f: 'amberLow', l: 'Amber below', min: 10,  max: 14,  step: 0.1, d: 1 },
+            { f: 'high',     l: 'Amber above', min: 13,  max: 16,  step: 0.1, d: 1 } ],
+    fuel: [ { f: 'red',      l: 'Red below',   min: 0,   max: 30,  step: 1 },
+            { f: 'amber',    l: 'Amber below', min: 3,   max: 40,  step: 1 } ]
+  };
+  /* keeps a sensor's breakpoints in the right order after a nudge, e.g. so
+     "amber above" can never end up higher than "red above" */
+  function clampThresholds(k, thresholds) {
+    var t = (thresholds || cfg.thresholds)[k], d = THRESH_DEFS[k];
+    if (k === 'ect' || k === 'iat') {
+      if (t.amber >= t.red) t.red = Math.min(d[1].max, t.amber + d[1].step);
+    } else if (k === 'afr') {
+      if (t.rich >= t.lean) t.lean = Math.min(d[1].max, t.rich + d[1].step);
+    } else if (k === 'fuel') {
+      if (t.red >= t.amber) t.amber = Math.min(d[1].max, t.red + d[1].step);
+    } else if (k === 'batt') {
+      if (t.low >= t.amberLow) t.amberLow = Math.min(d[1].max, t.low + d[1].step);
+      if (t.amberLow >= t.high) t.high = Math.min(d[2].max, t.amberLow + d[2].step);
+    }
+  }
+  /* real websocket key -> our sensor key, for anything not a 1:1 name match */
+  var REAL_KEY_MAP = { o2: 'afr', bat: 'batt', flr: 'fuel', an0: 'aux1', an1: 'aux2', an2: 'aux3', an3: 'aux4' };
+
+  /* themes and swatches */
+  var THEMES = [
+    { id: 'stock',    name: 'Stock',     tach: '#f6f3ea', vtec: '#f0202f', ink: '#eeebe3' },
+    { id: 'retro',    name: 'Retro',     tach: '#ffb224', vtec: '#ff4a1c', ink: '#ffd9a0' },
+    { id: 'ice',      name: 'Ice',       tach: '#59c6ff', vtec: '#3d7bff', ink: '#e6f4ff' },
+    { id: 'sunset',   name: 'Sunset',    tach: '#ff8a4c', vtec: '#ff2d95', ink: '#ffe1d1' },
+    { id: 'stealth',  name: 'Stealth',   tach: '#8b9099', vtec: '#dfe3ea', ink: '#dfe3ea' }
+  ];
+  var TACH_SW = [['#f6f3ea', 'White'], ['#ffb224', 'Amber'], ['#59c6ff', 'Cyan'], ['#7ee8b0', 'Mint'], ['#b993ff', 'Violet'], ['#ff8a4c', 'Orange']];
+  var VTEC_SW = [['#f0202f', 'Red'], ['#ff6a1f', 'Orange'], ['#ff2d95', 'Magenta'], ['#3d7bff', 'Blue'], ['#3ddc97', 'Green'], ['#ffd23f', 'Yellow']];
+
+  /* settings, saved in this browser */
+  var STORE = 'hondash-concept-cfg-v1';
+  var DEFAULT = { sensors: ['ect', 'iat', 'afr', 'batt', 'map', 'fuel', 'eth', 'cam', 'aux1', 'aux2'],
+    theme: 'stock', mode: 'digital', tach: '#f6f3ea', vtec: '#f0202f', ink: '#eeebe3',
+    shift: 7800, vtecRpm: 5600, showVtec: true, effects: 'full', night: false, smoothBatt: true, customThemes: [],
+    thresholds: {
+      ect:  { amber: 210, red: 225 },
+      iat:  { amber: 120, red: 150 },
+      afr:  { rich: 10.6, lean: 15.2 },
+      batt: { low: 12, amberLow: 13, high: 14.8 },
+      fuel: { amber: 15, red: 7 }
+    },
+    updateRepo: 'pablobuenaposada/HonDash-frontend', installedSha: 'a3f9c21', installedDate: '2026-06-14T10:00:00Z' };
+  function isThemeObj(t) {
+    return t && typeof t.id === 'string' && typeof t.name === 'string' && isHex(t.tach) && isHex(t.vtec) && isHex(t.ink);
+  }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function isHex(c) { return typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c); }
+  function load() {
+    var c = clone(DEFAULT);
+    try {
+      var raw = window.localStorage.getItem(STORE);
+      if (!raw) return c;
+      var s = JSON.parse(raw);
+      if (Array.isArray(s.sensors)) {
+        var seen = {}, list = s.sensors.filter(function (k) { if (!SBY[k] || seen[k]) return false; seen[k] = 1; return true; }).slice(0, 10);
+        if (list.length) c.sensors = list;
+      }
+      if (isHex(s.tach)) c.tach = s.tach;
+      if (isHex(s.vtec)) c.vtec = s.vtec;
+      if (isHex(s.ink)) c.ink = s.ink;
+      if (typeof s.theme === 'string') c.theme = s.theme;
+      if (s.mode === 'analog') c.mode = 'analog';
+      if (typeof s.shift === 'number' && s.shift >= 6000 && s.shift <= 8800) c.shift = s.shift;
+      if (typeof s.vtecRpm === 'number' && s.vtecRpm >= 3000 && s.vtecRpm <= c.shift - 300) c.vtecRpm = s.vtecRpm;
+      if (typeof s.showVtec === 'boolean') c.showVtec = s.showVtec;
+      if (s.effects === 'lite') c.effects = 'lite';
+      if (s.night === true) c.night = true;
+      if (s.smoothBatt === false) c.smoothBatt = false;
+      if (Array.isArray(s.customThemes)) c.customThemes = s.customThemes.filter(isThemeObj).slice(0, 30);
+      if (s.thresholds && typeof s.thresholds === 'object') {
+        Object.keys(THRESH_DEFS).forEach(function (k) {
+          var saved = s.thresholds[k];
+          if (!saved || typeof saved !== 'object') return;
+          THRESH_DEFS[k].forEach(function (d) {
+            var v = saved[d.f];
+            if (typeof v === 'number' && isFinite(v) && v >= d.min && v <= d.max) c.thresholds[k][d.f] = v;
+          });
+          clampThresholds(k, c.thresholds);
+        });
+      }
+      if (typeof s.updateRepo === 'string' && s.updateRepo.length < 100) c.updateRepo = s.updateRepo;
+      if (typeof s.installedSha === 'string' && /^[0-9a-f]{4,40}$/i.test(s.installedSha)) c.installedSha = s.installedSha;
+      if (typeof s.installedDate === 'string') c.installedDate = s.installedDate;
+    } catch (e) { /* storage unavailable: use defaults */ }
+    return c;
+  }
+  function save() { try { window.localStorage.setItem(STORE, JSON.stringify(cfg)); } catch (e) { /* ignore */ } }
+  var cfg = load();
+
+  /* digital tach */
+  var tach = $('#tach'), segs = [];
+  for (var i = 0; i < N; i++) { var d = document.createElement('i'); tach.appendChild(d); segs.push(d); }
+  var ticks = $('#ticks');
+  for (var k = 0; k <= 9; k++) {
+    var sp = document.createElement('span');
+    sp.textContent = k; sp.style.left = (k / 9 * 100) + '%';
+    ticks.appendChild(sp);
+  }
+  var bloomLo = 'rgba(238,235,227,.2)', bloomVt = 'rgba(240,32,47,.34)';
+  var stage = $('#stage'), vtecMark = $('#vtecMark'), vtecTag = $('#vtecTag');
+
+  /* analog EF cluster: reusable round-gauge builder */
+  function buildDial(container, o) {
+    container.innerHTML = '';
+    var svg = svgEl('svg', { viewBox: '0 0 200 200' });
+    var defs = svgEl('defs', {});
+    var grad = svgEl('radialGradient', { id: 'efFace' + (o.gradId || 0), cx: '35%', cy: '28%', r: '85%' });
+    grad.appendChild(svgEl('stop', { offset: '0%', 'stop-color': '#fbf8ef' }));
+    grad.appendChild(svgEl('stop', { offset: '68%', 'stop-color': '#efe9d6' }));
+    grad.appendChild(svgEl('stop', { offset: '100%', 'stop-color': '#ddd6c0' }));
+    defs.appendChild(grad); svg.appendChild(defs);
+    svg.appendChild(svgEl('circle', { cx: 100, cy: 100, r: 96, fill: '#1b1d22', stroke: '#000', 'stroke-width': 1 }));
+    svg.appendChild(svgEl('circle', { cx: 100, cy: 100, r: 90, fill: 'url(#efFace' + (o.gradId || 0) + ')' }));
+
+    (o.minors || []).forEach(function (v) {
+      var f = (v - o.min) / (o.max - o.min), b = bearingFor(f);
+      var p1 = polar(b, 82), p2 = polar(b, 76);
+      svg.appendChild(svgEl('line', { x1: p1[0], y1: p1[1], x2: p2[0], y2: p2[1], stroke: '#4a4a4a', 'stroke-width': 1.4 }));
+    });
+    (o.majors || []).forEach(function (v) {
+      var f = (v - o.min) / (o.max - o.min), b = bearingFor(f);
+      var p1 = polar(b, 82), p2 = polar(b, 71);
+      svg.appendChild(svgEl('line', { x1: p1[0], y1: p1[1], x2: p2[0], y2: p2[1], stroke: '#1a1a1a', 'stroke-width': 2.6 }));
+      var lp = polar(b, 58);
+      var t = svgEl('text', { x: lp[0], y: lp[1] + 5, 'text-anchor': 'middle', 'font-size': 14, 'font-weight': 700, fill: '#1a1a1a' });
+      t.textContent = o.fmt ? o.fmt(v) : v;
+      svg.appendChild(t);
+    });
+
+    if (o.redFrom != null) {
+      var C = 2 * Math.PI * 84, startFrac = Math.max(0, Math.min(1, (o.redFrom - o.min) / (o.max - o.min)));
+      var arcLen = C * (1 - startFrac) * (270 / 360), rot = 135 + startFrac * 270;
+      svg.appendChild(svgEl('circle', {
+        cx: 100, cy: 100, r: 84, fill: 'none', stroke: o.redColor || '#c81c26', 'stroke-width': 6,
+        'stroke-dasharray': arcLen + ' ' + (C - arcLen), transform: 'rotate(' + rot + ' 100 100)'
+      }));
+    }
+    var vtecLine = null;
+    if (o.vtecValue != null) {
+      var vf = Math.max(0, Math.min(1, (o.vtecValue - o.min) / (o.max - o.min))), vb = bearingFor(vf);
+      var vp1 = polar(vb, 88), vp2 = polar(vb, 66);
+      vtecLine = svgEl('line', { x1: vp1[0], y1: vp1[1], x2: vp2[0], y2: vp2[1], stroke: o.vtecColor || '#c81c26', 'stroke-width': 3.2 });
+      svg.appendChild(vtecLine);
+    }
+    if (o.unitLabel) {
+      var ul = svgEl('text', { x: 100, y: 132, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 600, fill: '#6a6a6a' });
+      ul.textContent = o.unitLabel;
+      svg.appendChild(ul);
+    }
+
+    var needle = svgEl('g', {});
+    needle.appendChild(svgEl('line', { x1: 100, y1: 100, x2: 100, y2: 24, stroke: o.needleColor || '#c81c26', 'stroke-width': 3.4, 'stroke-linecap': 'round' }));
+    needle.appendChild(svgEl('line', { x1: 100, y1: 100, x2: 100, y2: 118, stroke: o.needleColor || '#c81c26', 'stroke-width': 3.4, 'stroke-linecap': 'round' }));
+    svg.appendChild(needle);
+    svg.appendChild(svgEl('circle', { cx: 100, cy: 100, r: 7, fill: '#141414', stroke: '#3a3a3a', 'stroke-width': 1.5 }));
+    container.appendChild(svg);
+
+    return {
+      setValue: function (v) {
+        var f = (v - o.min) / (o.max - o.min);
+        needle.setAttribute('transform', 'rotate(' + bearingFor(f) + ' 100 100)');
+      }
+    };
+  }
+
+  /* small round gauge for the auxiliary sensor pods */
+  function buildMiniGauge(container, sensor) {
+    container.innerHTML = '';
+    var svg = svgEl('svg', { viewBox: '0 0 200 200' });
+    var C = 2 * Math.PI * 92;
+    var ring = svgEl('circle', {
+      cx: 100, cy: 100, r: 92, fill: 'none', stroke: '#3a3f49', 'stroke-width': 9, 'stroke-linecap': 'round',
+      'stroke-dasharray': (C * 270 / 360) + ' ' + C, transform: 'rotate(135 100 100)'
+    });
+    svg.appendChild(ring);
+    svg.appendChild(svgEl('circle', { cx: 100, cy: 100, r: 78, fill: '#f0ece0' }));
+    [0, 0.5, 1].forEach(function (f) {
+      var b = bearingFor(f), p1 = polar(b, 74), p2 = polar(b, 63);
+      svg.appendChild(svgEl('line', { x1: p1[0], y1: p1[1], x2: p2[0], y2: p2[1], stroke: '#333', 'stroke-width': 3 }));
+    });
+    var needle = svgEl('g', {});
+    needle.appendChild(svgEl('line', { x1: 100, y1: 100, x2: 100, y2: 28, stroke: '#c81c26', 'stroke-width': 4, 'stroke-linecap': 'round' }));
+    needle.appendChild(svgEl('line', { x1: 100, y1: 100, x2: 100, y2: 116, stroke: '#c81c26', 'stroke-width': 4, 'stroke-linecap': 'round' }));
+    svg.appendChild(needle);
+    svg.appendChild(svgEl('circle', { cx: 100, cy: 100, r: 9, fill: '#141414' }));
+    container.appendChild(svg);
+    var STATE_COLOR = { none: '#3a3f49', cyan: '#59c6ff', green: '#4fd98a', amber: '#ffb224', red: '#f0202f' };
+    return {
+      setValue: function (v) {
+        var f = (v - sensor.r[0]) / (sensor.r[1] - sensor.r[0]);
+        needle.setAttribute('transform', 'rotate(' + bearingFor(f) + ' 100 100)');
+      },
+      setState: function (st) { ring.setAttribute('stroke', STATE_COLOR[st] || STATE_COLOR.none); }
+    };
+  }
+
+  var efTachDial = null, efSpeedoDial = null;
+  function rebuildEfTach() {
+    efTachDial = buildDial($('#efTach'), {
+      gradId: 1, min: 0, max: 9, majors: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], minors: [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5],
+      redFrom: cfg.shift / 1000, vtecValue: cfg.showVtec ? cfg.vtecRpm / 1000 : null,
+      redColor: cfg.vtec, vtecColor: cfg.vtec, needleColor: cfg.vtec, unitLabel: 'RPM × 1000'
+    });
+  }
+  function rebuildEfSpeedo() {
+    efSpeedoDial = buildDial($('#efSpeedo'), {
+      gradId: 2, min: 0, max: 160, majors: [0, 20, 40, 60, 80, 100, 120, 140, 160], minors: [10, 30, 50, 70, 90, 110, 130, 150],
+      needleColor: cfg.vtec, unitLabel: 'MPH'
+    });
+  }
+  var efGauguesEl = $('#efGauges'), efGaugeRefs = [];
+  function buildEfGauges() {
+    efGauguesEl.innerHTML = ''; efGaugeRefs = [];
+    efGauguesEl.style.setProperty('--ecols', Math.max(1, cfg.sensors.length));
+    cfg.sensors.forEach(function (key) {
+      var s = SBY[key], pod = document.createElement('div');
+      pod.className = 'agp';
+      pod.innerHTML = '<div class="gsvg"></div><div class="l"></div><div class="v"><span></span><small></small></div>';
+      pod.querySelector('.l').textContent = s.l;
+      pod.querySelector('small').textContent = s.u;
+      if (THRESH_DEFS[key]) {
+        pod.dataset.adjustable = '1';
+        pod.setAttribute('role', 'button');
+        pod.setAttribute('aria-label', s.l + ' thresholds');
+        pod.addEventListener('click', function () { openThresholdEditor(key); });
+      }
+      efGauguesEl.appendChild(pod);
+      var dial = buildMiniGauge(pod.querySelector('.gsvg'), s);
+      efGaugeRefs.push({ dial: dial, val: pod.querySelector('.v span'), sensor: s });
+    });
+  }
+  var efGearWinEl = $('#efGearWin');
+
+  function applyTach() {
+    SHIFT = cfg.shift; RED = SHIFT + 200; VTEC = cfg.vtecRpm;
+    var iV = Math.round(VTEC / STEP), iR = Math.min(N - 1, Math.round(RED / STEP));
+    for (var i = 0; i < N; i++) {
+      var c, g, z;
+      if (i < iV)      { z = 'z-lo';   c = mix(mix(cfg.tach, '#000000', .38), mix(cfg.tach, '#ffffff', .25), i / Math.max(1, iV)); g = rgba(cfg.tach, .15); }
+      else if (i < iR) { z = 'z-vtec'; c = mix(mix(cfg.vtec, '#ffffff', .2), cfg.vtec, (i - iV) / Math.max(1, iR - iV)); g = rgba(cfg.vtec, .55); }
+      else             { z = 'z-red';  c = mix('#ff8f84', '#fff1ee', (i - iR) / Math.max(1, N - iR)); g = 'rgba(255,130,120,.75)'; }
+      segs[i].classList.remove('z-lo', 'z-vtec', 'z-red'); segs[i].classList.add(z);
+      segs[i].style.setProperty('--c', c); segs[i].style.setProperty('--g', g);
+    }
+    var x = (32 + 736 * VTEC / MAX) + 'px';
+    vtecMark.style.left = x; vtecTag.style.left = x;
+    vtecMark.style.display = vtecTag.style.display = cfg.showVtec ? '' : 'none';
+    rebuildEfTach();
+  }
+  function applyTheme() {
+    var st = stage.style;
+    st.setProperty('--ink', cfg.ink); st.setProperty('--vt', cfg.vtec);
+    st.setProperty('--vtg', rgba(cfg.vtec, .5));
+    st.setProperty('--vtInk', lum(cfg.vtec) > .55 ? '#101216' : '#ffffff');
+    bloomLo = rgba(cfg.tach, .2); bloomVt = rgba(cfg.vtec, .34);
+    stage.dataset.style = cfg.mode === 'analog' ? 'analog' : 'digital';
+    stage.dataset.theme = cfg.theme;
+    applyTach();
+    rebuildEfSpeedo();
+  }
+  function applyLook() {
+    stage.classList.toggle('lite', cfg.effects === 'lite');
+    stage.classList.toggle('night', cfg.night);
+  }
+
+  /* tiles and history */
+  var HN = 120, hist = {};
+  SENSORS.forEach(function (s) { hist[s.k] = []; });
+  var tilesEl = $('#tiles'), tileRefs = [];
+  function buildTiles() {
+    tilesEl.innerHTML = ''; tileRefs = [];
+    var n = cfg.sensors.length, rows = n > 4 ? 2 : 1, cols = n > 4 ? Math.ceil(n / 2) : n;
+    tilesEl.style.setProperty('--cols', cols);
+    tilesEl.style.setProperty('--rows', rows);
+    stage.dataset.layout = rows === 2 ? 'r2' : 'r1';
+    cfg.sensors.forEach(function (key) {
+      var s = SBY[key], t = document.createElement('div');
+      t.className = 'tile';
+      t.innerHTML = '<svg class="spark" viewBox="0 0 119 40" preserveAspectRatio="none" aria-hidden="true"><path class="a"/><path class="l"/></svg>' +
+                    '<div class="l"></div><div class="v"><span></span><small></small></div>';
+      t.querySelector('.l').textContent = s.l;
+      t.querySelector('small').textContent = s.u;
+      if (THRESH_DEFS[key]) {
+        t.dataset.adjustable = '1';
+        t.setAttribute('role', 'button');
+        t.setAttribute('aria-label', s.l + ' thresholds');
+        t.addEventListener('click', function () { openThresholdEditor(key); });
+      }
+      tilesEl.appendChild(t);
+      tileRefs.push({ el: t, val: t.querySelector('.v span'), a: t.querySelector('.a'), l: t.querySelector('.spark .l'), sensor: s });
+    });
+    var empty = rows * cols - n;
+    if (empty > 0 && tileRefs.length) tileRefs[n - 1].el.style.gridColumn = 'span ' + (1 + empty);
+    drawSparks();
+  }
+  function drawSparks() {
+    if (cfg.effects === 'lite') return;
+    tileRefs.forEach(function (r) {
+      var arr = hist[r.sensor.k], n = arr.length;
+      if (n < 2) return;
+      var lo = r.sensor.r[0], hi = r.sensor.r[1], off = HN - n, line = '';
+      for (var i = 0; i < n; i++) {
+        var nv = Math.max(0, Math.min(1, (arr[i] - lo) / (hi - lo)));
+        line += (i ? ' L' : 'M') + (off + i) + ',' + (37 - nv * 33).toFixed(1);
+      }
+      r.l.setAttribute('d', line);
+      r.a.setAttribute('d', line + ' L118,40 L' + off + ',40 Z');
+    });
+  }
+  function rebuildSensorViews() { buildTiles(); buildEfGauges(); }
+
+  /* fit to viewport */
+  var holder = $('#holder');
+  function fit() {
+    var sc = Math.min((window.innerWidth - 8) / 800, (window.innerHeight - 8) / 480);
+    sc = Math.max(0.3, Math.min(sc, 1.6));
+    holder.style.width = (800 * sc) + 'px';
+    holder.style.height = (480 * sc) + 'px';
+    stage.style.transform = 'scale(' + sc + ')';
+  }
+  window.addEventListener('resize', fit); fit();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+
+  /* live data, fed by the real HonDash websocket (see hondashConnect() below) */
+  var tStart = performance.now(), last = tStart;
+  var introStart = tStart, INTRO = 1.7;
+  var S = { rpm: 0, mph: 0, ect: 140, iat: 90, afr: 14.7, batt: 13.6, map: 30, fuel: 50, eth: 0, cam: 0, aux1: 0, aux2: 0, aux3: 0, aux4: 0, tps: 0 };
+  /* T holds the latest raw values as they arrive off the websocket; frame() eases S toward T
+     each tick so the UI doesn't jump on every packet */
+  var T = { rpm: 0, mph: 0, gear: 0, ect: 140, iat: 90, afr: 14.7, batt: 13.6, map: 30, fuel: 50, eth: 0, cam: 0, aux1: 0, aux2: 0, aux3: 0, aux4: 0, tps: 0 };
+  var flags = { mil: false, fan: false, scs: false, hddlg: false, vtec: 'off' };
+  var connected = false;
+  var peak = 0, peakT = 0, sampleAcc = 0;
+  var battF = 13.6, BATT_ALPHA = 0.045;
+
+  function lerp(a, b, k) { return a + (b - a) * Math.min(1, k); }
+  var RATE = { rpm: 60, mph: 6, ect: 3, iat: 3, afr: 8, batt: 30, map: 8, fuel: 1.5, eth: 2, cam: 8, aux1: 6, aux2: 6, aux3: 6, aux4: 6, tps: 60 };
+  var ease = function (x) { return x * x * (3 - 2 * x); };
+
+  var tpsFill = $('#tpsFill'), bloom = $('#bloom'), peakEl = $('#peak');
+  var el = { gear: $('#gear'), rpm: $('#rpm'), mph: $('#mph'), msg: $('#msg'),
+             cel: $('#pCel'), fan: $('#pFan'), scs: $('#pScs'), vtec: $('#pVtec'), log: $('#pLog') };
+
+  /* --- real websocket connection --------------------------------------- */
+  function hondashConnect() {
+    var ws;
+    try {
+      ws = new WebSocket('ws://' + (window.location.hostname || '127.0.0.1') + ':5678/');
+    } catch (e) { setTimeout(hondashConnect, 2000); return; }
+
+    ws.onopen = function () { ws.send(JSON.stringify({ action: 'setup' })); };
+    ws.onmessage = function (event) {
+      var msg;
+      try { msg = JSON.parse(event.data); } catch (e) { return; }
+      var keys = Object.keys(msg);
+      if (keys[0] === 'setup') {
+        connected = true;
+        introStart = performance.now(); /* play the boot sweep once we're actually talking to the ECU */
+      } else if (keys[0] === 'data') {
+        applyRealData(msg.data);
+      } else if (keys[0] === 'action' && msg.action === 'refresh') {
+        window.location.reload();
+      }
+    };
+    ws.onerror = function () { try { ws.close(); } catch (e) {} };
+    ws.onclose = function () {
+      connected = false;
+      // Otherwise whatever the sensors read the instant the ECU went away (e.g. a
+      // momentary lean AFR blip, a low-voltage sample) stays frozen forever, and
+      // the red alarm border never clears even though the car isn't running.
+      T.rpm = 0; T.mph = 0; T.gear = 0; T.afr = 14.7; T.batt = 13.6;
+      S.rpm = 0; S.mph = 0; S.afr = 14.7; S.batt = 13.6;
+      flags.mil = false; flags.fan = false; flags.scs = false; flags.hddlg = false; flags.vtec = 'off';
+      setTimeout(hondashConnect, 1500);
+    };
+  }
+  function applyRealData(d) {
+    for (var rawKey in d) {
+      var v = d[rawKey];
+      switch (rawKey) {
+        case 'rpm': T.rpm = v; break;
+        case 'vss': T.mph = v; break;
+        case 'gear': T.gear = v; break;
+        case 'tps': T.tps = v; break;
+        case 'ect': T.ect = v; break;
+        case 'iat': T.iat = v; break;
+        case 'o2': T.afr = v; break;
+        case 'bat': T.batt = v; break;
+        case 'map': T.map = v; break;
+        case 'flr': T.fuel = v; break;
+        case 'eth': T.eth = v; break;
+        case 'cam': T.cam = v; break;
+        case 'an0': T.aux1 = v; break;
+        case 'an1': T.aux2 = v; break;
+        case 'an2': T.aux3 = v; break;
+        case 'an3': T.aux4 = v; break;
+        case 'mil': flags.mil = !!v; break;
+        case 'fan': flags.fan = !!v; break;
+        case 'scs': flags.scs = !!v; break;
+        case 'hddlg': flags.hddlg = !!v; break;
+        case 'vtec': flags.vtec = v; break;
+        case 'style':
+          /* follow the real dash's own day/night switch (keyboard "1") unless
+             this browser has never been touched, so a manual choice here sticks */
+          if (v === 'night' || v === 'day') { cfg.night = v === 'night'; applyLook(); }
+          break;
+      }
+    }
+  }
+
+  function frame(now) {
+    var dt = Math.min(0.1, (now - last) / 1000); last = now;
+
+    var ip = (now - introStart) / 1000 / INTRO, intro = ip >= 0 && ip < 1;
+    var introRpm = intro ? MAX * (ip < 0.5 ? ease(ip / 0.5) : 1 - ease((ip - 0.5) / 0.5)) : null;
+
+    for (var key in RATE) {
+      var tgt = key === 'rpm' && intro ? introRpm : T[key];
+      S[key] = lerp(S[key], tgt, dt * RATE[key]);
+    }
+    if (intro) S.rpm = introRpm;
+    battF += BATT_ALPHA * (S.batt - battF);
+    var Sd = Object.create(S);
+    if (cfg.smoothBatt) Sd.batt = battF;
+
+    var analog = cfg.mode === 'analog';
+
+    if (!analog) {
+      for (var i = 0; i < N; i++) {
+        var on = S.rpm >= i * STEP + STEP * 0.5;
+        if (segs[i].classList.contains('on') !== on) segs[i].classList.toggle('on', on);
+      }
+    }
+    var shifting = !intro && S.rpm >= SHIFT;
+    stage.classList.toggle('shifting', shifting);
+    stage.classList.toggle('vt', S.rpm >= VTEC);
+
+    if (!analog && cfg.effects !== 'lite') {
+      var pct = Math.max(0, Math.min(100, S.rpm / MAX * 100));
+      bloom.style.setProperty('--bx', (2 + pct * 0.96) + '%');
+      bloom.style.setProperty('--bc', S.rpm >= RED ? 'rgba(255,120,110,.42)' : S.rpm >= VTEC ? bloomVt : bloomLo);
+      bloom.style.opacity = S.rpm > 700 ? (shifting ? 1 : 0.85) : 0;
+    }
+
+    if (!intro) {
+      if (S.rpm > peak) { peak = S.rpm; peakT = now; }
+      else if (now - peakT > 1800) peak = Math.max(S.rpm, peak - dt * 3200);
+    } else { peak = 0; }
+    if (!analog) {
+      if (peak > 1500 && peak > S.rpm + 120) {
+        peakEl.style.opacity = 0.9;
+        peakEl.style.left = (32 + 736 * Math.min(peak, MAX) / MAX - 1.5) + 'px';
+      } else peakEl.style.opacity = 0;
+      tpsFill.style.transform = 'scaleX(' + Math.max(0, Math.min(1, S.tps / 100)) + ')';
+    }
+
+    el.rpm.textContent = Math.round(S.rpm).toLocaleString('en-US');
+    el.mph.textContent = Math.round(S.mph);
+    el.gear.textContent = T.gear ? T.gear : 'N';
+
+    // AFR readings are meaningless with no combustion happening (key-on-engine-off,
+    // cranking, deceleration overrun) and will swing lean/rich on their own - only
+    // trust them, for alarm purposes, once the engine is actually idling or above.
+    var running = S.rpm > 400;
+
+    var states = {};
+    SENSORS.forEach(function (s) { states[s.k] = s.st(Sd[s.k]); });
+    if (!running && states.afr === 'red') states.afr = 'amber';
+
+    if (analog) {
+      if (efTachDial) efTachDial.setValue(S.rpm / 1000);
+      if (efSpeedoDial) efSpeedoDial.setValue(S.mph);
+      efGearWinEl.textContent = T.gear ? T.gear : 'N';
+      efGaugeRefs.forEach(function (r) {
+        var s = r.sensor, v = Sd[s.k], txt = s.d ? v.toFixed(s.d) : String(Math.round(v));
+        if (r.val.textContent !== txt) r.val.textContent = txt;
+        r.dial.setValue(v);
+        r.dial.setState(states[s.k]);
+      });
+    } else {
+      tileRefs.forEach(function (r) {
+        var s = r.sensor, v = Sd[s.k], txt = s.d ? v.toFixed(s.d) : String(Math.round(v));
+        if (r.val.textContent !== txt) r.val.textContent = txt;
+        if (r.el.dataset.state !== states[s.k]) r.el.dataset.state = states[s.k];
+      });
+      sampleAcc += dt;
+      if (sampleAcc >= 0.25) {
+        sampleAcc = 0;
+        SENSORS.forEach(function (s) { var a = hist[s.k]; a.push(Sd[s.k]); if (a.length > HN) a.shift(); });
+        drawSparks();
+      }
+    }
+
+    var anyRed = SENSORS.some(function (s) { return states[s.k] === 'red'; }) || flags.mil;
+    stage.classList.toggle('alarm', anyRed);
+
+    el.cel.classList.toggle('on', flags.mil);
+    el.fan.classList.toggle('on', flags.fan);
+    el.scs.classList.toggle('on', flags.scs);
+    el.log.classList.toggle('on', flags.hddlg);
+    el.vtec.classList.toggle('on', flags.vtec !== 'off');
+    el.vtec.classList.toggle('alert', flags.vtec === 'malfunction');
+
+    var m = '';
+    if (!connected) m = 'Waiting for the ECU…';
+    else if (flags.vtec === 'malfunction') m = 'VTEC malfunction. Check the pressure switch.';
+    else if (states.ect === 'red') m = 'Coolant is too hot. Stop and let it cool.';
+    else if (states.afr === 'red') m = 'Running lean. Lift off the throttle.';
+    else if (states.batt === 'red') m = 'Battery is not charging.';
+    else if (flags.mil) m = 'Check engine light is on.';
+    if (el.msg.textContent !== m) el.msg.textContent = m;
+
+    requestAnimationFrame(frame);
+  }
+
+  /* settings menu */
+  var menu = $('#menu'), cog = $('#cogBtn');
+  function openMenu() { menu.classList.add('open'); $('#mDone').focus(); }
+  function closeMenu() { menu.classList.remove('open'); cog.focus(); }
+  function isOpen() { return menu.classList.contains('open'); }
+  cog.addEventListener('click', openMenu);
+  $('#mDone').addEventListener('click', closeMenu);
+
+  /* per-sensor threshold editor, opened by tapping a tile/gauge on the main screen */
+  var teEl = $('#threshEdit'), teTitleEl = $('#teTitle'), teRowsEl = $('#teRows'), teKey = null;
+  function teFmt(k, d) {
+    var v = cfg.thresholds[k][d.f];
+    return (d.d ? v.toFixed(d.d) : Math.round(v)) + (SBY[k].u ? ' <small>' + SBY[k].u + '</small>' : '');
+  }
+  function teRenderAll() {
+    var defs = THRESH_DEFS[teKey];
+    $$('#teRows output').forEach(function (out, i) { out.innerHTML = teFmt(teKey, defs[i]); });
+  }
+  function openThresholdEditor(key) {
+    var defs = THRESH_DEFS[key];
+    if (!defs) return;
+    teKey = key;
+    teTitleEl.textContent = SBY[key].l + ' thresholds';
+    teRowsEl.innerHTML = '';
+    defs.forEach(function (d) {
+      var row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = '<div class="t">' + d.l + '</div>' +
+        '<div class="step">' +
+          '<button type="button" data-dir="-1" aria-label="Lower ' + d.l + '">&minus;</button>' +
+          '<output></output>' +
+          '<button type="button" data-dir="1" aria-label="Raise ' + d.l + '">+</button>' +
+        '</div>';
+      teRowsEl.appendChild(row);
+      row.querySelectorAll('button').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var t = cfg.thresholds[teKey];
+          var nv = Math.round((t[d.f] + Number(b.dataset.dir) * d.step) * 100) / 100;
+          t[d.f] = Math.max(d.min, Math.min(d.max, nv));
+          clampThresholds(teKey);
+          teRenderAll();
+          save();
+        });
+      });
+    });
+    teRenderAll();
+    teEl.classList.add('open');
+    $('#teDone').focus();
+  }
+  $('#teDone').addEventListener('click', function () { teEl.classList.remove('open'); teKey = null; });
+  $('#teReset').addEventListener('click', function () {
+    if (!teKey) return;
+    cfg.thresholds[teKey] = clone(DEFAULT.thresholds[teKey]);
+    teRenderAll();
+    save();
+  });
+  /* "Exit to Linux" calls a tiny local helper (see the hondash-helper setup) that has
+     permission to stop the kiosk service — a webpage on its own can't do this. */
+  var linuxDesktop = $('#linuxDesktop'), exitStatusHint = $('#exitStatusHint');
+  var HELPER_URL = 'http://127.0.0.1:8765';
+  $('#mExit').addEventListener('click', function () {
+    closeMenu();
+    linuxDesktop.classList.add('open');
+    exitStatusHint.textContent = 'Handing off to the Raspberry Pi desktop. To come back, use the "HonDash" icon there.';
+    fetch(HELPER_URL + '/exit', { method: 'POST' })
+      .catch(function () {
+        exitStatusHint.textContent = 'Couldn’t reach the local helper on ' + HELPER_URL + ' — is hondash-helper.service running?';
+      });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && teEl.classList.contains('open')) { teEl.classList.remove('open'); teKey = null; }
+    else if (e.key === 'Escape' && isOpen()) closeMenu();
+    else if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey) { isOpen() ? closeMenu() : openMenu(); }
+  });
+  $$('#mTabs .tab').forEach(function (b) {
+    b.addEventListener('click', function () {
+      $$('#mTabs .tab').forEach(function (x) { x.setAttribute('aria-selected', x === b ? 'true' : 'false'); });
+      $$('.pane').forEach(function (p) { p.classList.toggle('on', p.id === b.dataset.p); });
+    });
+  });
+
+  /* sensors tab */
+  var chips = {};
+  var sGrid = $('#sGrid');
+  SENSORS.forEach(function (s) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.dataset.k = s.k;
+    b.innerHTML = '<span class="nm"></span><span class="un"></span><span class="bd"></span>';
+    b.querySelector('.nm').textContent = s.l;
+    b.querySelector('.un').textContent = s.u;
+    b.addEventListener('click', function () {
+      var idx = cfg.sensors.indexOf(s.k);
+      if (idx >= 0) { if (cfg.sensors.length > 1) cfg.sensors.splice(idx, 1); }
+      else if (cfg.sensors.length < 10) cfg.sensors.push(s.k);
+      else return;
+      save(); renderSensors(); rebuildSensorViews();
+    });
+    sGrid.appendChild(b); chips[s.k] = b;
+  });
+  function renderSensors() {
+    var full = cfg.sensors.length >= 10;
+    SENSORS.forEach(function (s) {
+      var b = chips[s.k], idx = cfg.sensors.indexOf(s.k);
+      b.setAttribute('aria-pressed', idx >= 0 ? 'true' : 'false');
+      b.setAttribute('aria-disabled', (idx < 0 && full) ? 'true' : 'false');
+      b.querySelector('.bd').textContent = idx >= 0 ? idx + 1 : '';
+    });
+    $('#sCount').textContent = cfg.sensors.length + ' of 10';
+  }
+  $('#sClear').addEventListener('click', function () {
+    cfg.sensors = [cfg.sensors[0]]; save(); renderSensors(); rebuildSensorViews();
+  });
+
+  /* look tab */
+  var thRow = $('#thRow');
+  function addThemeCard(th) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'card'; b.dataset.id = th.id;
+    var lo0 = mix(th.tach, '#000000', .38), lo1 = mix(th.tach, '#ffffff', .25), v0 = mix(th.vtec, '#ffffff', .2);
+    b.innerHTML = '<i style="background:linear-gradient(90deg,' + lo0 + ',' + lo1 + ' 54%,' + v0 + ' 56%,' + th.vtec + ' 80%,#ff8f84 82%,#fff1ee)"></i>' + th.name;
+    b.addEventListener('click', function () {
+      cfg.theme = th.id; cfg.tach = th.tach; cfg.vtec = th.vtec; cfg.ink = th.ink;
+      save(); applyTheme(); renderLook();
+    });
+    thRow.appendChild(b);
+  }
+  THEMES.forEach(addThemeCard);
+  cfg.customThemes.forEach(addThemeCard);
+  segWire('segStyle', function (v) { cfg.mode = v; applyTheme(); });
+  function makeSwatches(root, list, key) {
+    list.forEach(function (c) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'swb'; b.style.background = c[0]; b.dataset.c = c[0];
+      b.setAttribute('aria-label', c[1]);
+      b.addEventListener('click', function () {
+        cfg[key] = c[0]; cfg.theme = 'custom'; save(); applyTheme(); renderLook();
+      });
+      root.appendChild(b);
+    });
+  }
+  makeSwatches($('#swTach'), TACH_SW, 'tach');
+  makeSwatches($('#swVtec'), VTEC_SW, 'vtec');
+  function segWire(root, fn) {
+    $$('#' + root + ' button').forEach(function (b) { b.addEventListener('click', function () { fn(b.dataset.v); save(); renderLook(); }); });
+  }
+  segWire('segFx', function (v) { cfg.effects = v; applyLook(); if (v === 'full') drawSparks(); });
+  segWire('segBr', function (v) { cfg.night = v === 'night'; applyLook(); });
+  function renderLook() {
+    $$('#segStyle button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === cfg.mode ? 'true' : 'false'); });
+    $$('#thRow .card').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.id === cfg.theme ? 'true' : 'false'); });
+    $$('#swTach .swb').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.c.toLowerCase() === cfg.tach.toLowerCase() ? 'true' : 'false'); });
+    $$('#swVtec .swb').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.c.toLowerCase() === cfg.vtec.toLowerCase() ? 'true' : 'false'); });
+    $$('#segFx button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === cfg.effects ? 'true' : 'false'); });
+    $$('#segBr button').forEach(function (b) { b.setAttribute('aria-pressed', (b.dataset.v === 'night') === cfg.night ? 'true' : 'false'); });
+  }
+
+  /* tach tab */
+  function fmt(v) { return v.toLocaleString('en-US') + '<small>rpm</small>'; }
+  function renderTach() {
+    $('#shVal').innerHTML = fmt(cfg.shift);
+    $('#vtVal').innerHTML = fmt(cfg.vtecRpm);
+    $('#swVt').setAttribute('aria-checked', cfg.showVtec ? 'true' : 'false');
+    $('#swBattSmooth').setAttribute('aria-checked', cfg.smoothBatt ? 'true' : 'false');
+  }
+  function bump(field, delta) {
+    if (field === 'shift') cfg.shift = Math.max(cfg.vtecRpm + 300, Math.min(8800, cfg.shift + delta));
+    else cfg.vtecRpm = Math.max(3000, Math.min(cfg.shift - 300, cfg.vtecRpm + delta));
+    save(); applyTach(); renderTach();
+  }
+  $('#shDn').addEventListener('click', function () { bump('shift', -100); });
+  $('#shUp').addEventListener('click', function () { bump('shift', 100); });
+  $('#vtDn').addEventListener('click', function () { bump('vtec', -100); });
+  $('#vtUp').addEventListener('click', function () { bump('vtec', 100); });
+  $('#swVt').addEventListener('click', function () { cfg.showVtec = !cfg.showVtec; save(); applyTach(); renderTach(); });
+  $('#swBattSmooth').addEventListener('click', function () { cfg.smoothBatt = !cfg.smoothBatt; save(); renderTach(); });
+
+  $('#mReset').addEventListener('click', function () {
+    cfg = clone(DEFAULT); save(); applyTheme(); applyLook(); rebuildSensorViews(); renderSensors(); renderLook(); renderTach();
+  });
+
+  /* community tab: browse and install themes shared on GitHub.
+     A theme is just a small JSON file -- {name, tach, vtec, ink} -- living in a
+     "themes" folder of a public repo, so no code ever runs, only colors get read. */
+  var cList = $('#cList'), cRepoInput = $('#cRepo');
+  function communityId(repo, filename) { return 'community:' + repo + ':' + filename; }
+  function renderCommunityRow(theme, filename, repo) {
+    var row = document.createElement('div'), already = cfg.customThemes.some(function (t) { return t.id === theme.id; });
+    row.className = 'crow' + (already ? ' installed' : '');
+    row.innerHTML = '<span class="cdot"></span><span class="cname"></span><span class="cby"></span><button type="button" class="mb"></button>';
+    row.querySelector('.cdot').style.background = theme.vtec;
+    row.querySelector('.cname').textContent = theme.name;
+    row.querySelector('.cby').textContent = filename;
+    var btn = row.querySelector('.mb');
+    btn.textContent = already ? 'Installed' : 'Install';
+    btn.disabled = already;
+    btn.addEventListener('click', function () {
+      cfg.customThemes.push(theme); save();
+      addThemeCard(theme); renderLook();
+      btn.textContent = 'Installed'; btn.disabled = true; row.classList.add('installed');
+    });
+    cList.appendChild(row);
+  }
+  $('#cRefresh').addEventListener('click', function () {
+    var repo = cRepoInput.value.trim();
+    cList.innerHTML = '<div class="cnote">Loading themes from ' + repo + '&hellip;</div>';
+    fetch('https://api.github.com/repos/' + repo + '/contents/themes')
+      .then(function (r) { if (!r.ok) throw new Error('repo or themes folder not found (' + r.status + ')'); return r.json(); })
+      .then(function (files) {
+        var jsonFiles = files.filter(function (f) { return f.type === 'file' && /\.json$/i.test(f.name); });
+        cList.innerHTML = '';
+        if (!jsonFiles.length) { cList.innerHTML = '<div class="cnote">No theme files found in that repo’s /themes folder.</div>'; return; }
+        jsonFiles.forEach(function (f) {
+          fetch(f.download_url).then(function (r) { return r.json(); }).then(function (data) {
+            var theme = { id: communityId(repo, f.name), name: String(data.name || f.name).slice(0, 40), tach: data.tach, vtec: data.vtec, ink: data.ink };
+            if (!isThemeObj(theme)) { return; } // skip anything that doesn't match the expected shape
+            renderCommunityRow(theme, f.name, repo);
+          }).catch(function () { /* skip a theme file that fails to parse */ });
+        });
+      })
+      .catch(function (err) {
+        cList.innerHTML = '<div class="cnote">Couldn’t load themes (' + err.message + '). Check the repo name and that the Pi has internet right now.</div>';
+      });
+  });
+
+  /* updates */
+  var uInstalled = $('#uInstalled'), uStatus = $('#uStatus'), uCheck = $('#uCheck'), uApply = $('#uApply'),
+    uRepo = $('#uRepo'), uProgWrap = $('#uProgWrap'), uProg = $('#uProg'), uProgLabel = $('#uProgLabel');
+  var latestUpdate = null;
+  function fmtDate(iso) {
+    try { return new Date(iso).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' }); }
+    catch (e) { return iso; }
+  }
+  function renderUpdates() {
+    uInstalled.textContent = 'Build ' + cfg.installedSha.slice(0, 7) + ' · installed ' + fmtDate(cfg.installedDate);
+    uRepo.value = cfg.updateRepo;
+  }
+  uCheck.addEventListener('click', function () {
+    var repo = uRepo.value.trim();
+    uCheck.disabled = true; uApply.disabled = true; latestUpdate = null;
+    uStatus.className = 'cnote'; uStatus.textContent = 'Checking ' + repo + '…';
+    fetch('https://api.github.com/repos/' + repo + '/commits/main')
+      .then(function (r) { if (!r.ok) throw new Error('repo not found or no internet (' + r.status + ')'); return r.json(); })
+      .then(function (data) {
+        var sha = String(data.sha || '').slice(0, 7);
+        var msg = String((data.commit && data.commit.message) || '').split('\n')[0].slice(0, 80);
+        var date = (data.commit && data.commit.author && data.commit.author.date) || null;
+        if (!sha) throw new Error('unexpected response');
+        if (sha === cfg.installedSha.slice(0, 7)) {
+          uStatus.textContent = 'You’re up to date.';
+        } else {
+          latestUpdate = { sha: sha, msg: msg, date: date };
+          uStatus.textContent = 'Update available: ' + sha + ' — ' + (msg || 'no message') + (date ? ' (' + fmtDate(date) + ')' : '');
+          uApply.disabled = false;
+        }
+      })
+      .catch(function (err) {
+        uStatus.textContent = 'Couldn’t check for updates (' + err.message + ').';
+      })
+      .finally(function () { uCheck.disabled = false; });
+  });
+  uApply.addEventListener('click', function () {
+    if (!latestUpdate) return;
+    uCheck.disabled = true; uApply.disabled = true;
+    uProgWrap.style.display = 'block'; uProg.style.width = '0%';
+    var steps = ['Downloading update…', 'Pulling changes…', 'Rebuilding container…', 'Restarting HonDash…'];
+    var i = 0;
+    function step() {
+      uProgLabel.textContent = steps[i];
+      uProg.style.width = Math.round(((i + 1) / steps.length) * 100) + '%';
+      i++;
+      if (i < steps.length) { setTimeout(step, 700); return; }
+      setTimeout(function () {
+        cfg.installedSha = latestUpdate.sha; cfg.installedDate = latestUpdate.date || new Date().toISOString();
+        save(); renderUpdates();
+        uStatus.textContent = 'Updated to ' + latestUpdate.sha + '. You’re up to date.';
+        uProgWrap.style.display = 'none';
+        latestUpdate = null;
+        uCheck.disabled = false;
+      }, 500);
+    }
+    step();
+  });
+  uRepo.addEventListener('change', function () { cfg.updateRepo = uRepo.value.trim() || DEFAULT.updateRepo; save(); });
+
+  /* start */
+  applyTheme(); applyLook(); rebuildSensorViews(); renderSensors(); renderLook(); renderTach(); renderUpdates();
+  requestAnimationFrame(frame);
+  hondashConnect();
+})();
+</script>
+</body>
+</html>
