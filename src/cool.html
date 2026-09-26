@@ -69,6 +69,18 @@
       repeating-linear-gradient(-45deg, rgba(255,255,255,.015) 0 2px, transparent 2px 6px),
       radial-gradient(110% 80% at 50% 22%, #16181c 0%, #0e0f12 58%, #08090b 100%);
   }
+  #stage[data-theme="carbon"] {
+    background:
+      repeating-linear-gradient(45deg, rgba(0,0,0,.55) 0 4px, rgba(28,28,28,.55) 4px 8px),
+      repeating-linear-gradient(-45deg, rgba(0,0,0,.45) 0 4px, rgba(40,40,40,.45) 4px 8px),
+      radial-gradient(120% 90% at 50% 18%, #1c1c1c 0%, #121212 55%, #060606 100%);
+  }
+  #stage[data-theme="titanium"] {
+    background:
+      repeating-linear-gradient(91deg, rgba(255,255,255,.06) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(89deg, rgba(0,0,0,.06) 0 1px, transparent 1px 4px),
+      radial-gradient(120% 90% at 50% 15%, #2a2d31 0%, #1b1d20 55%, #101113 100%);
+  }
   #stage::before, #stage::after {
     content: ''; position: absolute; inset: 0; border-radius: 18px;
     pointer-events: none; opacity: 0; z-index: 5;
@@ -444,7 +456,7 @@
         <div class="pane" id="pUpdates">
           <div class="row"><div><div class="t">Installed version</div><div class="s" id="uInstalled">&mdash;</div></div>
             <button type="button" class="mb sm" id="uCheck">Check for updates</button></div>
-          <div id="uStatus" class="cnote">Tap &ldquo;Check for updates&rdquo; to see if there&rsquo;s a newer build on GitHub.</div>
+          <div id="uStatus" class="cnote">Tap &ldquo;Check for updates&rdquo; to see if there&rsquo;s a newer build on GitHub. &ldquo;Update now&rdquo; pulls it straight onto this dash &mdash; no computer needed.</div>
           <div id="uProgWrap" style="display:none;margin:12px 0">
             <div style="height:8px;border-radius:5px;background:#20242c;overflow:hidden">
               <div id="uProg" style="height:100%;width:0%;background:var(--tach);transition:width .35s"></div>
@@ -570,7 +582,9 @@
     { id: 'retro',    name: 'Retro',     tach: '#ffb224', vtec: '#ff4a1c', ink: '#ffd9a0' },
     { id: 'ice',      name: 'Ice',       tach: '#59c6ff', vtec: '#3d7bff', ink: '#e6f4ff' },
     { id: 'sunset',   name: 'Sunset',    tach: '#ff8a4c', vtec: '#ff2d95', ink: '#ffe1d1' },
-    { id: 'stealth',  name: 'Stealth',   tach: '#8b9099', vtec: '#dfe3ea', ink: '#dfe3ea' }
+    { id: 'stealth',  name: 'Stealth',   tach: '#8b9099', vtec: '#dfe3ea', ink: '#dfe3ea' },
+    { id: 'carbon',   name: 'Carbon',    tach: '#c9c9c9', vtec: '#ff3b1f', ink: '#e8e8e8' },
+    { id: 'titanium', name: 'Titanium',  tach: '#d7dde3', vtec: '#29e0c2', ink: '#eef2f5' }
   ];
   var TACH_SW = [['#f6f3ea', 'White'], ['#ffb224', 'Amber'], ['#59c6ff', 'Cyan'], ['#7ee8b0', 'Mint'], ['#b993ff', 'Violet'], ['#ff8a4c', 'Orange']];
   var VTEC_SW = [['#f0202f', 'Red'], ['#ff6a1f', 'Orange'], ['#ff2d95', 'Magenta'], ['#3d7bff', 'Blue'], ['#3ddc97', 'Green'], ['#ffd23f', 'Yellow']];
@@ -587,7 +601,7 @@
       batt: { low: 12, amberLow: 13, high: 14.8 },
       fuel: { amber: 15, red: 7 }
     },
-    updateRepo: 'pablobuenaposada/HonDash-frontend', installedSha: 'a3f9c21', installedDate: '2026-06-14T10:00:00Z' };
+    updateRepo: 'EFBMotorsports/HonDash-frontend-EFBMotorsports-Mod', installedSha: 'a3f9c21', installedDate: '2026-06-14T10:00:00Z' };
   function isThemeObj(t) {
     return t && typeof t.id === 'string' && typeof t.name === 'string' && isHex(t.tach) && isHex(t.vtec) && isHex(t.ink);
   }
@@ -1131,6 +1145,14 @@
       });
   });
   document.addEventListener('keydown', function (e) {
+    // don't hijack keys while the person is actually typing into a field -
+    // otherwise typing something like "EFBMotorsports" into the update-source
+    // box trips the "m" shortcut on every M and yanks the menu closed
+    var tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || (document.activeElement && document.activeElement.isContentEditable)) {
+      if (e.key === 'Escape') document.activeElement.blur();
+      return;
+    }
     if (e.key === 'Escape' && teEl.classList.contains('open')) { teEl.classList.remove('open'); teKey = null; }
     else if (e.key === 'Escape' && isOpen()) closeMenu();
     else if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey) { isOpen() ? closeMenu() : openMenu(); }
@@ -1324,24 +1346,36 @@
   uApply.addEventListener('click', function () {
     if (!latestUpdate) return;
     uCheck.disabled = true; uApply.disabled = true;
-    uProgWrap.style.display = 'block'; uProg.style.width = '0%';
-    var steps = ['Downloading update…', 'Pulling changes…', 'Rebuilding container…', 'Restarting HonDash…'];
-    var i = 0;
-    function step() {
-      uProgLabel.textContent = steps[i];
-      uProg.style.width = Math.round(((i + 1) / steps.length) * 100) + '%';
-      i++;
-      if (i < steps.length) { setTimeout(step, 700); return; }
-      setTimeout(function () {
+    uProgWrap.style.display = 'block'; uProg.style.width = '10%';
+    uProgLabel.textContent = 'Downloading and installing…';
+    /* the page can't rewrite its own files or touch Docker - that part happens
+       in the local helper (see pi-setup/hondash-helper.py), which fetches the
+       latest cool.html straight from GitHub and drops it into the running
+       container. Same trust model as the "Exit to Linux" helper: localhost-only,
+       one fixed action, nothing derived from page input. */
+    fetch(HELPER_URL + '/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repo: uRepo.value.trim() || DEFAULT.updateRepo })
+    })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (body) { return { ok: r.ok, body: body }; }); })
+      .then(function (res) {
+        if (!res.ok) throw new Error((res.body && res.body.error) || 'the helper reported a failure');
+        uProg.style.width = '100%';
+        uProgLabel.textContent = 'Installed. Reloading…';
         cfg.installedSha = latestUpdate.sha; cfg.installedDate = latestUpdate.date || new Date().toISOString();
-        save(); renderUpdates();
-        uStatus.textContent = 'Updated to ' + latestUpdate.sha + '. You’re up to date.';
+        save();
+        setTimeout(function () {
+          /* reload this exact page with a cache-busting query string so the
+             browser can't hand back the old cached copy of cool.html */
+          window.location.href = window.location.pathname + '?v=' + Date.now();
+        }, 600);
+      })
+      .catch(function (err) {
         uProgWrap.style.display = 'none';
-        latestUpdate = null;
-        uCheck.disabled = false;
-      }, 500);
-    }
-    step();
+        uStatus.textContent = 'Update failed (' + err.message + '). Is hondash-helper.service running and up to date?';
+        uCheck.disabled = false; uApply.disabled = false;
+      });
   });
   uRepo.addEventListener('change', function () { cfg.updateRepo = uRepo.value.trim() || DEFAULT.updateRepo; save(); });
 
