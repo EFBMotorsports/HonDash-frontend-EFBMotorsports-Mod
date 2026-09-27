@@ -126,8 +126,7 @@
   @media (prefers-reduced-motion: reduce) {
     #stage.shifting::after, #stage.alarm::before { animation: none; }
   }
-  #dim { position: absolute; inset: 0; background: rgba(0,0,0,.42); opacity: 0; pointer-events: none; z-index: 7; transition: opacity .3s; }
-  #stage.night #dim { opacity: 1; }
+  #dim { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 7; transition: opacity .3s; }
 
   /* tach */
   #bloom {
@@ -486,7 +485,7 @@
           </div>
           <div class="two">
             <div><div class="lab">Effects</div><div class="seg" id="segFx"><button type="button" data-v="full" aria-pressed="true">Full</button><button type="button" data-v="lite" aria-pressed="false">Lite</button></div></div>
-            <div><div class="lab">Brightness</div><div class="seg" id="segBr"><button type="button" data-v="day" aria-pressed="true">Day</button><button type="button" data-v="night" aria-pressed="false">Night</button></div></div>
+            <div><div class="lab">Brightness</div><div class="seg" id="segBr"><button type="button" data-v="auto" aria-pressed="true">Auto</button><button type="button" data-v="day" aria-pressed="false">Day</button><button type="button" data-v="night" aria-pressed="false">Night</button></div></div>
           </div>
         </div>
 
@@ -652,7 +651,7 @@
   var STORE = 'hondash-concept-cfg-v1';
   var DEFAULT = { sensors: ['ect', 'iat', 'afr', 'batt', 'map', 'fuel', 'eth', 'cam', 'aux1', 'aux2'],
     theme: 'stock', background: 'plain', mode: 'digital', tach: '#f6f3ea', vtec: '#f0202f', ink: '#eeebe3',
-    shift: 7800, vtecRpm: 5600, showVtec: true, effects: 'full', night: false, smoothBatt: true, customThemes: [],
+    shift: 7800, vtecRpm: 5600, showVtec: true, effects: 'full', night: false, nightAuto: true, dayBright: 100, nightBright: 60, smoothBatt: true, customThemes: [],
     thresholds: {
       ect:  { amber: 210, red: 225 },
       iat:  { amber: 120, red: 150 },
@@ -687,6 +686,9 @@
       if (typeof s.showVtec === 'boolean') c.showVtec = s.showVtec;
       if (s.effects === 'lite') c.effects = 'lite';
       if (s.night === true) c.night = true;
+      if (s.nightAuto === false) c.nightAuto = false;
+      if (typeof s.dayBright === 'number' && s.dayBright >= 40 && s.dayBright <= 100) c.dayBright = s.dayBright;
+      if (typeof s.nightBright === 'number' && s.nightBright >= 40 && s.nightBright <= 100) c.nightBright = s.nightBright;
       if (s.smoothBatt === false) c.smoothBatt = false;
       if (Array.isArray(s.customThemes)) c.customThemes = s.customThemes.filter(isThemeObj).slice(0, 30);
       if (s.thresholds && typeof s.thresholds === 'object') {
@@ -719,7 +721,7 @@
     ticks.appendChild(sp);
   }
   var bloomLo = 'rgba(238,235,227,.2)', bloomVt = 'rgba(240,32,47,.34)';
-  var stage = $('#stage'), vtecMark = $('#vtecMark'), vtecTag = $('#vtecTag');
+  var stage = $('#stage'), vtecMark = $('#vtecMark'), vtecTag = $('#vtecTag'), dimEl = $('#dim');
 
   /* analog EF cluster: reusable round-gauge builder */
   function buildDial(container, o) {
@@ -884,6 +886,8 @@
   function applyLook() {
     stage.classList.toggle('lite', cfg.effects === 'lite');
     stage.classList.toggle('night', cfg.night);
+    var bright = cfg.night ? cfg.nightBright : cfg.dayBright;
+    dimEl.style.opacity = String(Math.max(0, (100 - bright) / 100));
   }
 
   /* tiles and history */
@@ -1023,9 +1027,11 @@
         case 'hddlg': flags.hddlg = !!v; break;
         case 'vtec': flags.vtec = v; break;
         case 'style':
-          /* follow the real dash's own day/night switch (keyboard "1") unless
-             this browser has never been touched, so a manual choice here sticks */
-          if (v === 'night' || v === 'day') { cfg.night = v === 'night'; applyLook(); }
+          /* follow the real dash's own day/night switch (keyboard "1") only
+             while in Auto - once the person picks Day/Night themselves
+             (the main-screen button, or Settings > Look > Brightness),
+             cfg.nightAuto goes false and this stops overriding their choice */
+          if (cfg.nightAuto && (v === 'night' || v === 'day')) { cfg.night = v === 'night'; applyLook(); }
           break;
       }
     }
@@ -1138,7 +1144,7 @@
 
   /* settings menu */
   var menu = $('#menu'), cog = $('#cogBtn'), nightBtn = $('#nightBtn');
-  nightBtn.addEventListener('click', function () { cfg.night = !cfg.night; save(); applyLook(); renderLook(); });
+  nightBtn.addEventListener('click', function () { cfg.nightAuto = false; cfg.night = !cfg.night; save(); applyLook(); renderLook(); });
   function openMenu() { menu.classList.add('open'); $('#mDone').focus(); }
   function closeMenu() { menu.classList.remove('open'); cog.focus(); }
   function isOpen() { return menu.classList.contains('open'); }
@@ -1303,7 +1309,11 @@
   }
   segWire('segUI', function (v) { if (v === 'original') { window.location.href = 'basic.html'; } });
   segWire('segFx', function (v) { cfg.effects = v; applyLook(); if (v === 'full') drawSparks(); });
-  segWire('segBr', function (v) { cfg.night = v === 'night'; applyLook(); });
+  segWire('segBr', function (v) {
+    if (v === 'auto') { cfg.nightAuto = true; }
+    else { cfg.nightAuto = false; cfg.night = v === 'night'; }
+    applyLook();
+  });
   function renderLook() {
     $$('#segStyle button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === cfg.mode ? 'true' : 'false'); });
     $$('#thRow .card').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.id === cfg.theme ? 'true' : 'false'); });
@@ -1311,7 +1321,10 @@
     $$('#swTach .swb').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.c.toLowerCase() === cfg.tach.toLowerCase() ? 'true' : 'false'); });
     $$('#swVtec .swb').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.c.toLowerCase() === cfg.vtec.toLowerCase() ? 'true' : 'false'); });
     $$('#segFx button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === cfg.effects ? 'true' : 'false'); });
-    $$('#segBr button').forEach(function (b) { b.setAttribute('aria-pressed', (b.dataset.v === 'night') === cfg.night ? 'true' : 'false'); });
+    $$('#segBr button').forEach(function (b) {
+      var v = cfg.nightAuto ? 'auto' : (cfg.night ? 'night' : 'day');
+      b.setAttribute('aria-pressed', b.dataset.v === v ? 'true' : 'false');
+    });
     nightBtn.setAttribute('aria-pressed', cfg.night ? 'true' : 'false');
   }
 
